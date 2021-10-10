@@ -110,10 +110,9 @@ $ make build
 
 ## Snapshot Image
 
-You may want to build the Presto with your own build package for the development of Presto itself.
+You may want to run presto with custom build 
 
 ```
-$ cp /path/to/presto/presto-server/target/presto-server-330-SNAPSHOT.tar.gz /path/to/docker-presto-cluster/presto-base/
 $ make snapshot
 ```
 
