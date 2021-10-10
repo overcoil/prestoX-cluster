@@ -2,26 +2,26 @@ version: '3'
 
 services:
   coordinator:
-    image: "lewuathe/trino-coordinator:${TRINO_VERSION}"
+    image: "saj1th/presto-dbx-coordinator:${PRESTO_VERSION}"
     ports:
       - "8080:8080"
     container_name: "coordinator"
     command: http://coordinator:8080 coordinator
-    # volumes:
-    #   - ./example/etc/catalog:/usr/local/trino/etc/catalog
+    volumes:
+      - ./example/etc/catalog:/usr/local/presto/etc/catalog
   worker0:
-    image: "lewuathe/trino-worker:${TRINO_VERSION}"
+    image: "saj1th/presto-dbx-worker:${PRESTO_VERSION}"
     container_name: "worker0"
     ports:
       - "8081:8081"
     command: http://coordinator:8080 worker0
-    # volumes:
-    #   - ./example/etc/catalog:/usr/local/trino/etc/catalog
+    volumes:
+      - ./example/etc/catalog:/usr/local/presto/etc/catalog
   worker1:
-    image: "lewuathe/trino-worker:${TRINO_VERSION}"
+    image: "saj1th/presto-dbx-worker:${PRESTO_VERSION}"
     container_name: "worker1"
     ports:
       - "8082:8081"
     command: http://coordinator:8080 worker1
-    # volumes:
-    #   - ./example/etc/catalog:/usr/local/trino/etc/catalog
+    volumes:
+      - ./example/etc/catalog:/usr/local/presto/etc/catalog
