@@ -3,7 +3,7 @@
 #
 
 FROM openjdk:11-slim
-LABEL maintainer="saj1th"
+LABEL maintainer=${DOCKERHUB_ID}
 
 ARG VERSION
 ENV PRESTO_VERSION=${VERSION}

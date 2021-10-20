@@ -33,9 +33,9 @@ ENV JAVA_HOME /usr/java/default
 ENV PATH $PATH:$JAVA_HOME/bin
 
 WORKDIR /usr/local/bin
-ADD presto-cli-${PRESTO_VERSION}.jar /usr/local/bin
-RUN chmod +x presto-cli-${PRESTO_VERSION}.jar
-RUN mv presto-cli-${PRESTO_VERSION}.jar presto-cli
+ADD presto-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
+RUN chmod +x presto-cli-${PRESTO_VERSION}-executable.jar
+RUN mv presto-cli-${PRESTO_VERSION}-executable.jar presto-cli
 
 WORKDIR /usr/local
 ADD presto-server-${PRESTO_VERSION}.tar.gz /usr/local

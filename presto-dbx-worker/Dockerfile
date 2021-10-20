@@ -1,6 +1,7 @@
 ARG VERSION
+ARG DOCKERHUB_ID
 
-FROM saj1th/presto-base:${VERSION}
+FROM ${DOCKERHUB_ID}/presto-base:${VERSION}
 LABEL maintainer="saj1th"
 
 COPY etc /usr/local/presto/etc
