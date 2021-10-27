@@ -47,6 +47,8 @@ RUN ln -s /usr/local/presto-server-${PRESTO_VERSION} $PRESTO_HOME
 
 ADD scripts ${PRESTO_HOME}/scripts
 
+ADD deltatables ${PRESTO_HOME}/deltatables
+
 # Create data dir
 RUN mkdir -p $PRESTO_HOME/data
 VOLUME ["$PRESTO_HOME/data"]

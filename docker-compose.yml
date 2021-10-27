@@ -7,21 +7,15 @@ services:
       - "8080:8080"
     container_name: "coordinator"
     command: http://coordinator:8080 coordinator
-    volumes:
-      - ./golden:/usr/local/presto/deltatables
   worker0:
     image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
     container_name: "worker0"
     ports:
       - "8081:8081"
     command: http://coordinator:8080 worker0
-    volumes:
-      - ./golden:/usr/local/presto/deltatables
   worker1:
     image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
     container_name: "worker1"
     ports:
       - "8082:8081"
     command: http://coordinator:8080 worker1
-    volumes:
-      - ./golden:/usr/local/presto/deltatables
