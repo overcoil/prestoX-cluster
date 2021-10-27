@@ -3,7 +3,7 @@
 #
 
 FROM openjdk:11-slim
-LABEL maintainer="saj1th"
+LABEL maintainer=${DOCKERHUB_ID}
 
 ARG VERSION
 ENV PRESTO_VERSION=${VERSION}
@@ -46,6 +46,8 @@ RUN tar xvzf presto-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
 RUN ln -s /usr/local/presto-server-${PRESTO_VERSION} $PRESTO_HOME
 
 ADD scripts ${PRESTO_HOME}/scripts
+
+ADD deltatables ${PRESTO_HOME}/deltatables
 
 # Create data dir
 RUN mkdir -p $PRESTO_HOME/data
