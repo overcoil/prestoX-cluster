@@ -3,18 +3,24 @@ version: '3'
 services:
   coordinator:
     image: "${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VERSION}"
+    volumes:
+      - "./s3-dir.properties:/usr/local/presto-server-${PRESTO_VERSION}/etc/zz/s3-dir.properties"
     ports:
       - "8080:8080"
     container_name: "coordinator"
     command: http://coordinator:8080 coordinator
   worker0:
     image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
+    volumes:
+      - "./s3-dir.properties-w0:/usr/local/presto-server-{$PRESTO_VERSION}/etc/zz/s3-dir.properties"
     container_name: "worker0"
     ports:
       - "8081:8081"
     command: http://coordinator:8080 worker0
   worker1:
     image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
+    volumes:
+      - "./s3-dir.properties-w1:/usr/local/presto-server-{$PRESTO_VERSION}/etc/zz/s3-dir.properties"
     container_name: "worker1"
     ports:
       - "8082:8081"
