@@ -1,6 +1,6 @@
 PRESTO_VERSION := 0.263
 
-
+# set to save typing for the p/t targets towards the end of this Makefile
 TRINO_VER:=339
 PRESTO_VER:=0.266-SNAPSHOT
 
@@ -28,9 +28,9 @@ snapshot:
 #	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_SNAPSHOT_VERSION)
 
 push: build
-	docker push ${DOCKERHUB_ID}/presto-base:$(PRESTO_VERSION)
-	docker push ${DOCKERHUB_ID}/presto-dbx-coordinator:$(PRESTO_VERSION)
-	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_VERSION)
+#	docker push ${DOCKERHUB_ID}/presto-base:$(PRESTO_VERSION)
+#	docker push ${DOCKERHUB_ID}/presto-dbx-coordinator:$(PRESTO_VERSION)
+#	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_VERSION)
 	sh ./update-readme.sh
 
 run:
@@ -54,25 +54,30 @@ release:
 	git tag -a ${PRESTO_VERSION} -m "Release ${PRESTO_VERSION}"
 	git push --tags
 
+
 # we rely upon the different versioning schema to allow the two set of binaries to co-exist!
-copyfromm2:
-	cp  ~/.m2/repository/com/facebook/presto/presto-server/0.266-SNAPSHOT/presto-server-0.266-SNAPSHOT.tar.gz presto-base/
-	cp  ~/.m2/repository/com/facebook/presto/presto-cli/0.266-SNAPSHOT/presto-cli-0.266-SNAPSHOT-executable.jar presto-base/
+copyp:
+	cp ~/.m2/repository/com/facebook/presto/presto-server/0.266-SNAPSHOT/presto-server-0.266-SNAPSHOT.tar.gz presto-base/
+	cp ~/.m2/repository/com/facebook/presto/presto-cli/0.266-SNAPSHOT/presto-cli-0.266-SNAPSHOT-executable.jar presto-base/
+
+copyt:
 	cp ~/.m2/repository/io/prestosql/presto-server/339/presto-server-339.tar.gz  presto-base/
-	cp  ~/.m2/repository/io/prestosql/presto-cli/339/presto-cli-339-executable.jar presto-base/
+	cp ~/.m2/repository/io/prestosql/presto-cli/339/presto-cli-339-executable.jar presto-base/
 
 # Presto dev build
 pdev:
 	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${PRESTO_VER} presto-base
 	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VER} presto-dbx-coordinator
 	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VER} presto-dbx-worker
+
+ppush:
 	docker push ${DOCKERHUB_ID}/presto-base:$(PRESTO_VER)
 	docker push ${DOCKERHUB_ID}/presto-dbx-coordinator:$(PRESTO_VER)
 	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_VER)
 
 prun:
 	PRESTO_VERSION=$(PRESTO_VER) docker-compose up -d
-	echo "Please check http://localhost:8080"
+	echo "PrestoDB up. Please check http://localhost:8080"
 
 pdown:
 	PRESTO_VERSION=$(PRESTO_VER) docker-compose down
@@ -85,13 +90,15 @@ tdev:
 	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${TRINO_VER} presto-base
 	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-coordinator:${TRINO_VER} presto-dbx-coordinator
 	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-worker:${TRINO_VER} presto-dbx-worker
+
+tpush:
 	docker push ${DOCKERHUB_ID}/presto-base:$(TRINO_VER)
 	docker push ${DOCKERHUB_ID}/presto-dbx-coordinator:$(TRINO_VER)
 	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(TRINO_VER)
 
 trun:
 	PRESTO_VERSION=$(TRINO_VER) docker-compose up -d
-	echo "Please check http://localhost:8080"
+	echo "Trino up. Please check http://localhost:8080"
 
 tdown:
 	PRESTO_VERSION=$(TRINO_VER) docker-compose down
