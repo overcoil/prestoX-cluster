@@ -2,9 +2,9 @@ version: '3'
 
 services:
   coordinator:
-    image: "${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VERSION}"
+    image: "${DOCKERHUB_ID}/${PRESTVAR}-dbx-coordinator:${PRESTO_VERSION}"
     volumes:
-      - "./deltas3.properties:/usr/local/presto-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
+      - "./deltas3.properties:/usr/local/${PRESTVAR}-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
     ports:
       - "8080:8080"
     container_name: "coordinator"
@@ -14,9 +14,9 @@ services:
         limits:
           memory: 2G
   worker0:
-    image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
+    image: "${DOCKERHUB_ID}/${PRESTVAR}-dbx-worker:${PRESTO_VERSION}"
     volumes:
-      - "./deltas3.properties:/usr/local/presto-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
+      - "./deltas3.properties:/usr/local/${PRESTVAR}-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
     container_name: "worker0"
     ports:
       - "8081:8081"
@@ -24,11 +24,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 5G
   worker1:
-    image: "${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VERSION}"
+    image: "${DOCKERHUB_ID}/${PRESTVAR}-dbx-worker:${PRESTO_VERSION}"
     volumes:
-      - "./deltas3.properties:/usr/local/presto-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
+      - "./deltas3.properties:/usr/local/${PRESTVAR}-server-${PRESTO_VERSION}/etc/catalog/deltas3.properties"
     container_name: "worker1"
     ports:
       - "8082:8081"
@@ -36,5 +36,5 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 5G
 

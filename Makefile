@@ -1,7 +1,10 @@
 PRESTO_VERSION := 0.263
 
 # set to save typing for the p/t targets towards the end of this Makefile
-TRINO_VER:=339
+#TRINO_VER:=339
+
+# moving onto 359 
+TRINO_VER:=359
 PRESTO_VER:=0.266-SNAPSHOT
 
 # Venki's delta-dsr0.3 branch (for Presto) is version 0.266-SNAPSHOT
@@ -61,14 +64,22 @@ copyp:
 	cp ~/.m2/repository/com/facebook/presto/presto-cli/0.266-SNAPSHOT/presto-cli-0.266-SNAPSHOT-executable.jar presto-base/
 
 copyt:
-	cp ~/.m2/repository/io/prestosql/presto-server/339/presto-server-339.tar.gz  presto-base/
-	cp ~/.m2/repository/io/prestosql/presto-cli/339/presto-cli-339-executable.jar presto-base/
+	cp ~/.m2/repository/io/trino/trino-server/${TRINO_VER}/trino-server-${TRINO_VER}.tar.gz presto-base/trino-server-${TRINO_VER}.tar.gz
+	cp ~/.m2/repository/io/trino/trino-cli/${TRINO_VER}/trino-cli-${TRINO_VER}-executable.jar presto-base/trino-cli-${TRINO_VER}-executable.jar
+	chmod +x presto-base/trino-cli-${TRINO_VER}-executable.jar
+	ls -l presto-base/trino-*
 
 # Presto dev build
 pdev:
-	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${PRESTO_VER} presto-base
-	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VER} presto-dbx-coordinator
-	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VER} presto-dbx-worker
+	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		--build-arg PKG_REPO_SUBPATH=com/facebook/presto --build-arg PRESTVAR=presto \
+		-f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${PRESTO_VER} presto-base
+	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		--build-arg PRESTVAR=presto \
+		-t ${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VER} presto-dbx-coordinator
+	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		--build-arg PRESTVAR=presto \
+		-t ${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VER} presto-dbx-worker
 
 ppush:
 	docker push ${DOCKERHUB_ID}/presto-base:$(PRESTO_VER)
@@ -76,32 +87,39 @@ ppush:
 	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_VER)
 
 prun:
-	PRESTO_VERSION=$(PRESTO_VER) docker-compose up -d
+	PRESTVAR=presto PRESTO_VERSION=$(PRESTO_VER) docker-compose up -d
 	echo "PrestoDB up. Please check http://localhost:8080"
 
 pdown:
-	PRESTO_VERSION=$(PRESTO_VER) docker-compose down
+	PRESTVAR=presto PRESTO_VERSION=$(PRESTO_VER) docker-compose down
 
 pcli:
 	./presto-cli-${PRESTO_VER}-executable.jar
 
 # Trino dev build
+# TODO: 
 tdev:
-	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${TRINO_VER} presto-base
-	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-coordinator:${TRINO_VER} presto-dbx-coordinator
-	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} -t ${DOCKERHUB_ID}/presto-dbx-worker:${TRINO_VER} presto-dbx-worker
+	docker build --no-cache --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		--build-arg PKG_REPO_SUBPATH=io/trino --build-arg PRESTVAR=trino \
+		-f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/trino-base:${TRINO_VER} presto-base
+	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		-f presto-dbx-coordinator/Dockerfile-trino \
+		-t ${DOCKERHUB_ID}/trino-dbx-coordinator:${TRINO_VER} presto-dbx-coordinator
+	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+		-f presto-dbx-worker/Dockerfile-trino \
+		-t ${DOCKERHUB_ID}/trino-dbx-worker:${TRINO_VER} presto-dbx-worker
 
 tpush:
-	docker push ${DOCKERHUB_ID}/presto-base:$(TRINO_VER)
-	docker push ${DOCKERHUB_ID}/presto-dbx-coordinator:$(TRINO_VER)
-	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(TRINO_VER)
+	docker push ${DOCKERHUB_ID}/trino-base:$(TRINO_VER)
+	docker push ${DOCKERHUB_ID}/trino-dbx-coordinator:$(TRINO_VER)
+	docker push ${DOCKERHUB_ID}/trino-dbx-worker:$(TRINO_VER)
 
 trun:
-	PRESTO_VERSION=$(TRINO_VER) docker-compose up -d
+	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose up -d
 	echo "Trino up. Please check http://localhost:8080"
 
 tdown:
-	PRESTO_VERSION=$(TRINO_VER) docker-compose down
+	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose down
 
 tcli:
 	./presto-cli-${TRINO_VER}-executable.jar

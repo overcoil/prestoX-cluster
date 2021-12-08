@@ -1,5 +1,5 @@
 coordinator=false
 http-server.http.port=8080
 query.max-memory=50GB
-query.max-memory-per-node=1GB
+query.max-memory-per-node=3GB
 discovery.uri={{ discovery_uri }}

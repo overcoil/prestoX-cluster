@@ -6,8 +6,24 @@ FROM openjdk:11-slim
 LABEL maintainer="saj1th"
 
 ARG VERSION
+# these two arg need to be filled in as:
+#
+#  PrestoDB:
+#
+#    PKG_REPO_SUBPATH=com/facebook/presto
+#    PRESTVAR=presto
+#
+#  Trino (at least 359 onward):
+#
+#    PKG_REPO_SUBPATH=io/trino
+#    PRESTVAR=trino
+#
+#
+ARG PKG_REPO_SUBPATH
+ARG PRESTVAR
+
 ENV PRESTO_VERSION="${VERSION}"
-ENV PRESTO_HOME=/usr/local/presto
+ENV PRESTO_HOME=/usr/local/"${PRESTVAR}"
 #ENV BASE_URL=https://repo1.maven.org/maven2
 
 # install dev tools
@@ -33,16 +49,16 @@ ENV JAVA_HOME /usr/java/default
 ENV PATH $PATH:$JAVA_HOME/bin
 
 WORKDIR /usr/local/bin
-ADD presto-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
-RUN chmod +x presto-cli-${PRESTO_VERSION}-executable.jar
-RUN mv presto-cli-${PRESTO_VERSION}-executable.jar presto-cli
+ADD ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
+RUN chmod +x ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar
+RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar ${PRESTVAR}-cli
 
 WORKDIR /usr/local
-ADD presto-server-${PRESTO_VERSION}.tar.gz /usr/local
-#RUN tar xvzf presto-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
-RUN ln -s /usr/local/presto-server-${PRESTO_VERSION} $PRESTO_HOME
+ADD ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz /usr/local
+#RUN tar xvzf ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
+RUN ln -s /usr/local/${PRESTVAR}-server-${PRESTO_VERSION} $PRESTO_HOME
 
-ADD scripts ${PRESTO_HOME}/scripts
+COPY scripts-${PRESTVAR} ${PRESTO_HOME}/scripts
 
 WORKDIR /usr/local/deltalake
 

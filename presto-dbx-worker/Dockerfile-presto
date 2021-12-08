@@ -5,6 +5,7 @@ FROM ${DOCKERHUB_ID}/presto-base:${VERSION}
 LABEL maintainer="saj1th"
 
 COPY etc /usr/local/presto/etc
+COPY etc-catalog-delta-presto.properties /usr/local/presto/etc/catalog/delta.properties
 EXPOSE 8081
 
 WORKDIR /usr/local/presto

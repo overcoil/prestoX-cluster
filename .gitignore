@@ -125,4 +125,7 @@ override.tf.json
 
 
 deltas3.properties
+.vscode
+pcli
+tcli
 

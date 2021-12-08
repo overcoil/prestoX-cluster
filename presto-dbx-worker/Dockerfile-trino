@@ -1,0 +1,12 @@
+ARG VERSION
+ARG DOCKERHUB_ID
+
+FROM ${DOCKERHUB_ID}/trino-base:${VERSION}
+LABEL maintainer="saj1th"
+
+COPY etc /usr/local/trino/etc
+COPY etc-catalog-delta-trino.properties /usr/local/trino/etc/catalog/delta.properties
+EXPOSE 8081
+
+WORKDIR /usr/local/trino
+ENTRYPOINT [ "./scripts/trino.sh" ]
