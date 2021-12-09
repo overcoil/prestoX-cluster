@@ -7,7 +7,7 @@
 #   1. Rename this by removing the -tpl suffix
 #   2. Copy it to your Presto's etc/catalog. (Your new Presto catalog will be "s3-dir".)
 #   3. Fill in your AWS key pair
-#   4. Reference your Delta table (residing in S3) via the pattern: SELECT ... FROM "s3-dir"."$PATH$"."s3://bucket/path/to/delta"
+#   4. Reference your Delta table (residing in S3) via the pattern: SELECT ... FROM "deltas3"."$PATH$"."s3://bucket/path/to/delta"
 #
 
 connector.name=delta
@@ -15,7 +15,7 @@ hive.metastore=file
 hive.metastore.catalog.dir=/tmp/presto/metastore
 
 # Using Delta table in s3
-#  for Trino: refer to presto-hive/src/main/java/io/prestosql/plugin/hive/s3/HiveS3Config.java
+#  for Trino: refer to plugin/trino-hive/src/main/java/io/trino/plugin/hive/s3/HiveS3Config.java 
 #  for Presto: refer to presto-hive/src/main/java/com/facebook/presto/hive/s3/HiveS3Config.java
 
 hive.s3.aws-access-key=YOUR-ACCESS-KEY

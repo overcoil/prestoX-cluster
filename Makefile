@@ -12,7 +12,7 @@ PRESTO_VER:=0.266-SNAPSHOT
 PRESTO_SNAPSHOT_VERSION := 0.266-SNAPSHOT
 #PRESTO_SNAPSHOT_VERSION := 339
 
-.PHONY: build local push run down release
+.PHONY: build local push run down release pcopy pdev ppush prun pdown pcli tcopy tdev tpush trun tdown tcli
 
 build:
 	docker build --build-arg VERSION=${PRESTO_VERSION} -t ${DOCKERHUB_ID}/presto-base:${PRESTO_VERSION} presto-base
@@ -59,15 +59,23 @@ release:
 
 
 # we rely upon the different versioning schema to allow the two set of binaries to co-exist!
-copyp:
+pcopy:
 	cp ~/.m2/repository/com/facebook/presto/presto-server/0.266-SNAPSHOT/presto-server-0.266-SNAPSHOT.tar.gz presto-base/
 	cp ~/.m2/repository/com/facebook/presto/presto-cli/0.266-SNAPSHOT/presto-cli-0.266-SNAPSHOT-executable.jar presto-base/
+	ls -l presto-base/presto-*
 
-copyt:
+tcopy:
 	cp ~/.m2/repository/io/trino/trino-server/${TRINO_VER}/trino-server-${TRINO_VER}.tar.gz presto-base/trino-server-${TRINO_VER}.tar.gz
 	cp ~/.m2/repository/io/trino/trino-cli/${TRINO_VER}/trino-cli-${TRINO_VER}-executable.jar presto-base/trino-cli-${TRINO_VER}-executable.jar
 	chmod +x presto-base/trino-cli-${TRINO_VER}-executable.jar
 	ls -l presto-base/trino-*
+
+pcli:
+	docker exec -it coordinator /usr/local/bin/presto-cli
+
+tcli:
+	docker exec -it coordinator /usr/local/bin/trino-cli
+
 
 # Presto dev build
 pdev:
@@ -75,10 +83,10 @@ pdev:
 		--build-arg PKG_REPO_SUBPATH=com/facebook/presto --build-arg PRESTVAR=presto \
 		-f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/presto-base:${PRESTO_VER} presto-base
 	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
-		--build-arg PRESTVAR=presto \
+		-f presto-dbx-coordinator/Dockerfile-presto \
 		-t ${DOCKERHUB_ID}/presto-dbx-coordinator:${PRESTO_VER} presto-dbx-coordinator
 	docker build --build-arg VERSION=${PRESTO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
-		--build-arg PRESTVAR=presto \
+		-f presto-dbx-worker/Dockerfile-presto \
 		-t ${DOCKERHUB_ID}/presto-dbx-worker:${PRESTO_VER} presto-dbx-worker
 
 ppush:
@@ -93,11 +101,7 @@ prun:
 pdown:
 	PRESTVAR=presto PRESTO_VERSION=$(PRESTO_VER) docker-compose down
 
-pcli:
-	./presto-cli-${PRESTO_VER}-executable.jar
-
 # Trino dev build
-# TODO: 
 tdev:
 	docker build --no-cache --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
 		--build-arg PKG_REPO_SUBPATH=io/trino --build-arg PRESTVAR=trino \
@@ -121,6 +125,4 @@ trun:
 tdown:
 	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose down
 
-tcli:
-	./presto-cli-${TRINO_VER}-executable.jar
 
