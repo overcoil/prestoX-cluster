@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# use confd to insert the AWS key from the env into deltas3.properties
+confd -onetime -backend env
+
 discovery_uri=$1
 if [[ -n "$2" ]]; then
   node_id=$2

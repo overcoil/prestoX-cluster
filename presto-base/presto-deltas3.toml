@@ -1,0 +1,7 @@
+[template]
+src = "deltas3.properties.tmpl"
+dest = "/usr/local/presto/etc/catalog/deltas3.properties"
+keys = [
+    "/prest/awsaccesskeyid",
+    "/prest/awssecretkeyid",
+]

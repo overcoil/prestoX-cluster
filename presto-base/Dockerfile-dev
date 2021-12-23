@@ -41,12 +41,26 @@ RUN apt-get install -y \
     uuid-runtime \
     less
 
+# install confd to handle template from env var
+# https://github.com/kelseyhightower/confd/blob/master/docs/installation.md
+# note the addition the ENV further down
+RUN wget https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 \
+    && mkdir -p /opt/confd/bin \
+    && mkdir -p /etc/confd/conf.d \
+    && mkdir -p /etc/confd/templates \
+    && mv confd-0.16.0-linux-amd64 /opt/confd/bin/confd \
+    && chmod +x /opt/confd/bin/confd
+
+COPY ${PRESTVAR}-deltas3.toml /etc/confd/conf.d/deltas3.toml
+
+COPY deltas3.properties.tmpl /etc/confd/templates/deltas3.properties.tmpl
+
 RUN apt-get install -y  python-is-python3   
 
 RUN pip install jinja2
 
 ENV JAVA_HOME /usr/java/default
-ENV PATH $PATH:$JAVA_HOME/bin
+ENV PATH $PATH:$JAVA_HOME/bin:/opt/confd/bin
 
 WORKDIR /usr/local/bin
 ADD ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
@@ -67,3 +81,4 @@ ADD boston-housing /usr/local/deltalake/boston-housing
 # Create data dir
 RUN mkdir -p $PRESTO_HOME/data
 VOLUME ["$PRESTO_HOME/data"]
+

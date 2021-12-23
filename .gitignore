@@ -124,8 +124,8 @@ override.tf.json
 *-executable.jar
 
 
-deltas3.properties
 .vscode
 pcli
 tcli
+awscred.env
 

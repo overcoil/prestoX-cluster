@@ -103,7 +103,7 @@ pdown:
 
 # Trino dev build
 tdev:
-	docker build --no-cache --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
+	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
 		--build-arg PKG_REPO_SUBPATH=io/trino --build-arg PRESTVAR=trino \
 		-f presto-base/Dockerfile-dev -t ${DOCKERHUB_ID}/trino-base:${TRINO_VER} presto-base
 	docker build --build-arg VERSION=${TRINO_VER} --build-arg DOCKERHUB_ID=${DOCKERHUB_ID} \
