@@ -27,19 +27,22 @@ ENV PRESTO_HOME=/usr/local/"${PRESTVAR}"
 #ENV BASE_URL=https://repo1.maven.org/maven2
 
 # install dev tools
+# added dnsutils for nslookup and the iputils variant of ping
 RUN apt-get update
 RUN apt-get install -y \
-    curl \
-    tar \
-    sudo \
-    rsync \
-    python \
-    wget \
-    python3-pip \
-    python-dev \
     build-essential \
+    curl \
+    dnsutils \
+    iputils-ping \
+    less \
+    python \
+    python-dev \
+    python3-pip \
+    rsync \
+    sudo \
+    tar \
     uuid-runtime \
-    less
+    wget 
 
 # install confd to handle template from env var
 # https://github.com/kelseyhightower/confd/blob/master/docs/installation.md
@@ -63,8 +66,12 @@ ENV JAVA_HOME /usr/java/default
 ENV PATH $PATH:$JAVA_HOME/bin:/opt/confd/bin
 
 WORKDIR /usr/local/bin
+
+# pack in the CLI for convenience
 ADD ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
 RUN chmod +x ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar
+
+# make the CLI available with a version-invariant name
 RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar ${PRESTVAR}-cli
 
 WORKDIR /usr/local
