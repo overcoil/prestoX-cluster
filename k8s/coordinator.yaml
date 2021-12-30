@@ -1,0 +1,66 @@
+#
+# k8s yaml to deploy:
+#   1 Deployment - the coordinator as a single replica
+#   1 Service - a service for the worker nodes 
+#   1 Service Account - access control
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinator
+  labels:
+    app: trino
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: trino
+    version: v359
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: svc-coordinator
+  labels:
+    account: SVC_C
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino-coordinator-pool
+  labels:
+    app: trino
+    version: v359
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trino
+      version: v359
+  template:
+    metadata:
+      name: trino
+      labels:
+        app: trino
+        version: v359
+    spec:
+      serviceAccountName: svc-coordinator
+      containers:
+      - name: coordinator
+        image: docker.io/overcoil/trino-dbx-coordinator:359
+        resources:
+          limits:
+            memory: "2G"
+            cpu: "1000m"
+        envFrom:
+        - secretRef:
+            name: secret-awscred
+        command: ["./scripts/trino.sh"]
+        args: ["http://coordinator.trino.svc.cluster.local:8080", "coordinator"]
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+      dnsConfig:
+        searches:
+          - worker.trino.svc.cluster.local

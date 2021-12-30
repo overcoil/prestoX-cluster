@@ -1,0 +1,170 @@
+NS=trino
+ISTIO_NS=istio-system
+EKS_CTX=trino
+
+
+REGION=us-west-2
+
+# ref: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
+KVER=1.21
+CLUSTER_NAME=trino-eks-benchmark
+NGROUP=worker-nodes
+
+# GP: 8 vCPU/32 Gi RAM
+#NTYPE=t3.2xlarge
+
+# GP: m4.2xlarge: 8 vCPU/32 Gi RAM; USD0.40/h
+NTYPE=m4.2xlarge
+NODES=2
+MIN_NODES=2
+MAX_NODES=5
+
+
+# you must have 
+KC=kubectl
+EC=eksctl
+IC=istioctl
+
+.phony=mk eks ns label unlabel default awscred gw vs start stop ls istio extern cli nodetest sanity clean rawshell resumeshell worker0 coord
+
+# =====================================================
+
+# AWS EKS for primary; the rename-context relies on eksctl setting the newly created context/cluster to the current 
+eksup:
+	$(EC) create cluster --region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
+		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+
+    # Use back-ticks for subshell because $(...) notation is used by make
+	$(KC) config rename-context `$(KC) config current-context` $(EKS_CTX) 
+
+dryrun:
+	$(EC) create cluster --dry-run \
+		--region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
+		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+
+# you can also delete just the nodegroup
+eksdown:
+	$(EC) delete cluster --name $(CLUSTER_NAME) --region $(REGION)
+	$(KC) config delete-context $(EKS_CTX) 
+
+#
+eks2:
+	$(EC) create cluster -f eks2-cluster.yaml
+
+# incomplete command line for scaling the EKS cluster
+kscale:
+	$(EC) scale nodegroup --cluster trino2-eks-benchmark -n worker --nodes $(NODE) -
+
+# review your vpcs
+vpcs:
+	aws --region $(REGION) ec2 describe-vpcs --output json | jq -r '.Vpcs[]| .VpcId + " " + .CidrBlock + " " + (.IsDefault|tostring)'
+
+# review subnets in your vpcs
+subnets:
+	aws --region $(REGION) ec2 describe-subnets --output json | jq -r '.Subnets[]| .SubnetId + " " + .VpcId + " " + .AvailabilityZone + " " + .CidrBlock'
+
+
+# =====================================================
+
+
+# optional for local test/dev
+mk:
+	minikube start --memory 8192 --cpus 4
+	
+
+# =====================================================
+
+ns:
+	$(KC) create ns $(NS)
+
+
+
+default:
+	$(KC) config set-context --current --namespace=$(NS)
+
+awscred:
+	$(KC) -n $(NS) apply -f secret-awscred.yaml
+
+start:
+	$(KC) -n $(NS) apply -f coordinator.yaml -f workers.yaml
+
+stop:
+	$(KC) -n $(NS) delete -f coordinator.yaml -f workers.yaml
+	
+# the gw & vs resources are optional
+ls:
+	minikube status
+	$(EC) get cluster --region $(REGION) -v 0
+	$(KC) -n $(NS) get secret,svc,deploy,statefulset,po
+	$(KC) get po | grep coord | cut -d \  -f 1 > coord.out
+	$(KC) -n $(NS) get gw,vs
+
+# use the packed-in CLI inside the coordinator node
+cli:
+	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli
+#	./tcli --server=127.0.0.1:8080
+
+nodetest:
+	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli < ../../c2-presto-delta-test-material/node-check.sql
+
+sanity:
+	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli < ../../c2-presto-delta-test-material/tpcds-sanity.sql
+
+clean:
+	$(KC) -n $(NS) delete secret,gw,vs --all
+
+bashc:
+	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- bash
+
+bashw0:
+	$(KC) exec worker-0 -it -- bash
+
+bashw1:
+	$(KC) exec worker-1 -it -- bash
+
+scale:
+	$(KC) scale --replicas=4 statefulset/worker
+
+# =====================================================
+# istio experiments
+label:
+	$(KC) label ns $(NS) istio-injection=enabled
+
+unlabel:
+	$(KC) label ns $(NS) istio-injection-
+
+# Install Istio
+istio:
+	$(IC) install -y --set profile=demo --set hub=gcr.io/istio-release 
+
+
+# =====================================================
+# gateway 
+gw:
+	$(KC) -n $(NS) apply -f service-gateway.yaml
+
+vs:
+	$(KC) -n $(NS) apply -f trino-cli-vs.yaml
+
+# get public access
+extern:
+	$(KC) -n $(ISTIO_NS) get svc istio-ingressgateway
+
+
+# =====================================================
+
+# for shell-level nslookup to test network names inside the cluster
+# resume using 'kubectl attach curl -c curl -i -t' command while the pod is running
+rawshell:
+	$(KC) run curl --image=radial/busyboxplus:curl -i --tty
+
+resumeshell:
+	$(KC) attach curl -c curl -i -t
+
+# check worker0's node.properties for proper name association
+worker0:
+	$(KC) exec worker-0 -it -- cat /usr/local/trino/etc/node.properties
+ 
+ # check coordinator's node.properties for proper name association
+coord:
+	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- cat /usr/local/trino/etc/node.properties
