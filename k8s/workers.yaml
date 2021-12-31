@@ -70,7 +70,7 @@ spec:
         - secretRef:
             name: secret-awscred
         command: ["./scripts/trino.sh"]
-        args: ["http://coordinator.trino.svc.cluster.local:8080", $(node.name)]
+        args: ["http://coordinator-0.coordinator.trino.svc.cluster.local:8080", $(node.name)]
         imagePullPolicy: Always
       dnsConfig:
         searches:

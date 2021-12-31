@@ -1,8 +1,10 @@
 #
-# k8s yaml to deploy:
-#   1 Deployment - the coordinator as a single replica
-#   1 Service - a service for the worker nodes 
+# k8s yaml for Trino coordinators:
+#   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each Trino node (pod)
+#   1 Service - a headless service for the worker pool 
 #   1 Service Account - access control
+#
+# The secret is passed in to configure deltas3.properties dynamically for reading S3 Delta tables
 #
 apiVersion: v1
 kind: Service
@@ -10,13 +12,15 @@ metadata:
   name: coordinator
   labels:
     app: trino
+    version: v359
 spec:
-  ports:
-  - port: 8080
-    name: http
   selector:
     app: trino
     version: v359
+  clusterIP: None
+  ports:
+  - port: 8080
+    name: web
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -26,41 +30,48 @@ metadata:
     account: SVC_C
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: trino-coordinator-pool
-  labels:
-    app: trino
-    version: v359
+  name: coordinator
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: trino
       version: v359
+  serviceName: coordinator
+  replicas: 1
   template:
     metadata:
-      name: trino
       labels:
         app: trino
         version: v359
     spec:
-      serviceAccountName: svc-coordinator
       containers:
-      - name: coordinator
+      - name: worker
         image: docker.io/overcoil/trino-dbx-coordinator:359
+        ports:
+        - containerPort: 8080
+          name: access
         resources:
-          limits:
+          requests:
             memory: "2G"
+            cpu: "500m"
+          limits:
+            memory: "3G"
             cpu: "1000m"
+        env:
+          - name: cluster.name
+            value: k8s-logs
+          - name: node.name
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
         envFrom:
         - secretRef:
             name: secret-awscred
         command: ["./scripts/trino.sh"]
-        args: ["http://coordinator.trino.svc.cluster.local:8080", "coordinator"]
+        args: ["http://coordinator-0.coordinator.trino.svc.cluster.local:8080", $(node.name)]
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
       dnsConfig:
         searches:
           - worker.trino.svc.cluster.local
