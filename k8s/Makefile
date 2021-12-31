@@ -21,6 +21,7 @@ MAX_NODES=5
 
 
 # you must have 
+AWS=aws
 KC=kubectl
 EC=eksctl
 IC=istioctl
@@ -50,6 +51,9 @@ eksdown:
 #
 eks2:
 	$(EC) create cluster -f eks2-cluster.yaml
+
+describe:
+	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
 
 # incomplete command line for scaling the EKS cluster
 kscale:
@@ -93,28 +97,28 @@ stop:
 	
 # the gw & vs resources are optional
 ls:
-	minikube status
+#	minikube status
 	$(EC) get cluster --region $(REGION) -v 0
 	$(KC) -n $(NS) get secret,svc,deploy,statefulset,po
-	$(KC) get po | grep coord | cut -d \  -f 1 > coord.out
-	$(KC) -n $(NS) get gw,vs
+#	$(KC) get po | grep coord | cut -d \  -f 1 > coord.out
+#	$(KC) -n $(NS) get gw,vs
 
 # use the packed-in CLI inside the coordinator node
 cli:
 	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli
 #	./tcli --server=127.0.0.1:8080
 
-nodetest:
-	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli < ../../c2-presto-delta-test-material/node-check.sql
+nodecheck:
+	$(KC) exec coordinator-0 -it -- trino-cli < ../../c2-presto-delta-test-material/node-check.sql
 
 sanity:
-	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli < ../../c2-presto-delta-test-material/tpcds-sanity.sql
+	$(KC) exec coordinator-0 -it -- trino-cli < ../../c2-presto-delta-test-material/tpcds-sanity.sql
 
 clean:
 	$(KC) -n $(NS) delete secret,gw,vs --all
 
 bashc:
-	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- bash
+	$(KC) exec coordinator-0 -it -- bash
 
 bashw0:
 	$(KC) exec worker-0 -it -- bash
@@ -122,8 +126,18 @@ bashw0:
 bashw1:
 	$(KC) exec worker-1 -it -- bash
 
-scale:
-	$(KC) scale --replicas=4 statefulset/worker
+shrink:
+	$(KC) scale --replicas=2 statefulset/worker
+
+scale3:
+	$(KC) scale --replicas=3 statefulset/worker
+
+scale10:
+	$(KC) scale --replicas=10 statefulset/worker
+
+scale20:
+	$(KC) scale --replicas=20 statefulset/worker
+
 
 # =====================================================
 # istio experiments
