@@ -34,6 +34,55 @@ Start by creating a cluster. This is a relatively slow process (~20 minutes) so 
 ```sh
 # Start up your EKS cluster
 $ make eksup
+eksctl create cluster \
+		--region us-west-2 --version 1.21 --name trino-eks-benchmark \
+		--nodegroup-name worker-nodes --node-type m4.2xlarge --nodes 2 --nodes-min 2 --nodes-max 5 --managed 
+2022-01-04 11:19:18 [ℹ]  eksctl version 0.76.0
+2022-01-04 11:19:18 [ℹ]  using region us-west-2
+2022-01-04 11:19:18 [ℹ]  setting availability zones to [us-west-2a us-west-2d us-west-2c]
+2022-01-04 11:19:18 [ℹ]  subnets for us-west-2a - public:192.168.0.0/19 private:192.168.96.0/19
+2022-01-04 11:19:18 [ℹ]  subnets for us-west-2d - public:192.168.32.0/19 private:192.168.128.0/19
+2022-01-04 11:19:18 [ℹ]  subnets for us-west-2c - public:192.168.64.0/19 private:192.168.160.0/19
+2022-01-04 11:19:18 [ℹ]  nodegroup "worker-nodes" will use "" [AmazonLinux2/1.21]
+2022-01-04 11:19:18 [ℹ]  using Kubernetes version 1.21
+2022-01-04 11:19:18 [ℹ]  creating EKS cluster "trino-eks-benchmark" in "us-west-2" region with managed nodes
+2022-01-04 11:19:18 [ℹ]  will create 2 separate CloudFormation stacks for cluster itself and the initial managed nodegroup
+2022-01-04 11:19:18 [ℹ]  if you encounter any issues, check CloudFormation console or try 'eksctl utils describe-stacks --region=us-west-2 --cluster=trino-eks-benchmark'
+2022-01-04 11:19:18 [ℹ]  CloudWatch logging will not be enabled for cluster "trino-eks-benchmark" in "us-west-2"
+2022-01-04 11:19:18 [ℹ]  you can enable it with 'eksctl utils update-cluster-logging --enable-types={SPECIFY-YOUR-LOG-TYPES-HERE (e.g. all)} --region=us-west-2 --cluster=trino-eks-benchmark'
+2022-01-04 11:19:18 [ℹ]  Kubernetes API endpoint access will use default of {publicAccess=true, privateAccess=false} for cluster "trino-eks-benchmark" in "us-west-2"
+2022-01-04 11:19:18 [ℹ]  
+2 sequential tasks: { create cluster control plane "trino-eks-benchmark", 
+    2 sequential sub-tasks: { 
+        wait for control plane to become ready,
+        create managed nodegroup "worker-nodes",
+    } 
+}
+2022-01-04 11:19:18 [ℹ]  building cluster stack "eksctl-trino-eks-benchmark-cluster"
+2022-01-04 11:19:19 [ℹ]  deploying stack "eksctl-trino-eks-benchmark-cluster"
+2022-01-04 11:19:49 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-cluster"
+...
+2022-01-04 11:34:23 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-cluster"
+2022-01-04 11:36:25 [ℹ]  building managed nodegroup stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 11:36:25 [ℹ]  deploying stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 11:36:25 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+...
+2022-01-04 11:40:00 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 11:40:00 [ℹ]  waiting for the control plane availability...
+2022-01-04 11:40:00 [✔]  saved kubeconfig as "/Users/gkyc/.kube/config"
+2022-01-04 11:40:00 [ℹ]  no tasks
+2022-01-04 11:40:00 [✔]  all EKS cluster resources for "trino-eks-benchmark" have been created
+2022-01-04 11:40:00 [ℹ]  nodegroup "worker-nodes" has 2 node(s)
+2022-01-04 11:40:00 [ℹ]  node "ip-192-168-27-245.us-west-2.compute.internal" is ready
+2022-01-04 11:40:00 [ℹ]  node "ip-192-168-85-244.us-west-2.compute.internal" is ready
+2022-01-04 11:40:00 [ℹ]  waiting for at least 2 node(s) to become ready in "worker-nodes"
+2022-01-04 11:40:00 [ℹ]  nodegroup "worker-nodes" has 2 node(s)
+2022-01-04 11:40:00 [ℹ]  node "ip-192-168-27-245.us-west-2.compute.internal" is ready
+2022-01-04 11:40:00 [ℹ]  node "ip-192-168-85-244.us-west-2.compute.internal" is ready
+2022-01-04 11:40:01 [ℹ]  kubectl command should work with "/Users/gkyc/.kube/config", try 'kubectl get nodes'
+2022-01-04 11:40:01 [✔]  EKS cluster "trino-eks-benchmark" in "us-west-2" region is ready
+kubectl config rename-context `kubectl config current-context` trino 
+Context "george.chow@trino-eks-benchmark.us-west-2.eksctl.io" renamed to "trino".
 ```
 
 You stop the cluster with:
@@ -46,6 +95,41 @@ You can examine your cluster with:
 ```sh
 # Describe the cluster
 $ make eksdescribe
+aws eks describe-cluster --name trino-eks-benchmark --output json
+{
+    "cluster": {
+        "name": "trino-eks-benchmark",
+        "arn": "arn:aws:eks:us-west-2:534790972160:cluster/trino-eks-benchmark",
+        "createdAt": "2022-01-04T11:20:02.346000-08:00",
+        "version": "1.21",
+        "endpoint": "https://4EEEEE3F24454CD083D8D6E96F17A82B.gr7.us-west-2.eks.amazonaws.com",
+        "roleArn": "arn:aws:iam::534790972160:role/eksctl-trino-eks-benchmark-cluster-ServiceRole-18H4GBVTR2F2Q",
+        "resourcesVpcConfig": {
+            "subnetIds": [
+                "subnet-0e48c07e8c3172c0b",
+                "subnet-019c2a779f80e56cc",
+                "subnet-0e0423ab7b3765823",
+                "subnet-0e40e6b2a2d38e2eb",
+                "subnet-0151e0b83f1d72eb0",
+                "subnet-0bf31be616bfb10fa"
+            ],
+            "securityGroupIds": [
+                "sg-03ff1763cba4d23f5"
+            ],
+...
+        "platformVersion": "eks.4",
+        "tags": {
+            "aws:cloudformation:stack-name": "eksctl-trino-eks-benchmark-cluster",
+            "aws:cloudformation:logical-id": "ControlPlane",
+            "alpha.eksctl.io/cluster-name": "trino-eks-benchmark",
+            "aws:cloudformation:stack-id": "arn:aws:cloudformation:us-west-2:534790972160:stack/eksctl-trino-eks-benchmark-cluster/36f10cf0-6d93-11ec-b369-02562d0c6ec1",
+            "alpha.eksctl.io/eksctl-version": "0.76.0",
+            "eksctl.cluster.k8s.io/v1alpha1/cluster-name": "trino-eks-benchmark"
+        }
+    }
+}
+
+
 ```
 
 
@@ -55,11 +139,12 @@ To work with Kubernetes, verify your cluster is ready:
 ```sh
 % make status
 kubectl config get-contexts
-CURRENT   NAME       CLUSTER    AUTHINFO   NAMESPACE
-*         minikube   minikube   minikube   trino
+CURRENT   NAME       CLUSTER                                   AUTHINFO                                              NAMESPACE
+          minikube   minikube                                  minikube                                              trino
+*         trino      trino-eks-benchmark.us-west-2.eksctl.io   george.chow@trino-eks-benchmark.us-west-2.eksctl.io   
 ```
 
-The `*` indicates the context named `minikube` is current selected. The context happens to be defined for a cluster named `minikube`. You may have any number of contexts but only one is 'selected' at a time.
+The `*` indicates the context named `trino` is current selected. The context is defined for the indicated cluster and user. You may have any number of contexts but only one is 'selected' at a time.
 
 If you do not have a `*` shown, you can designate a specific context as your current via:
 ```sh
@@ -74,7 +159,7 @@ kubectl create ns trino
 namespace/trino created
 $ make default
 kubectl config set-context --current --namespace=trino
-Context "minikube" modified.
+Context "trino" modified.
 ```
 
 Before you can start up Trino, set up your AWS keys via a Kubernetes secret:
