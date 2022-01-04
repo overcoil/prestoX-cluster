@@ -275,6 +275,19 @@ statefulset.apps/worker scaled
 ```
 Specify the desired number of worker via the replica value. Do provide sufficient time for the workers to start up and to register themselves with the cluster coordinator. Workers are created serially in a Kubernetes statefulset so be patient if you are scaling up to a large number of workers. Use the `nodecheck` target above to observe the progress.
 
+## TPC-DS
+
+To run a pre-canned query (e.g., TPC-DS query 96). (To set expectations, query 96 runs in about 25 minutes in a 2-node cluster.)
+
+```sh
+$ ln -s ../../c2-presto-delta-test-material/tpcdsq96.sql .
+$ make q96
+kubectl exec coordinator-0 -it -- trino-cli < tpcdsq96.sql
+Unable to use a TTY - input is not a terminal or the right kind of file
+Jan 04, 2022 11:00:00 PM org.jline.utils.Log logr
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"707342"
+```
 
 ## Details
 
