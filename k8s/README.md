@@ -17,7 +17,7 @@ Additional dependency vary according to the Kubernetes platform you choose. If y
 1. `AWS CLI`
 2. [`eksctl`](https://eksctl.io/)
 
-All are readily avaiable from Homebrew:
+All are readily available from Homebrew:
 ```sh
 $ brew install kubectl
 # choose your Kubernetes platform
