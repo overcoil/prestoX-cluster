@@ -88,9 +88,13 @@ awscred:
 
 start:
 	$(KC) -n $(NS) apply -f coordinator.yaml -f workers.yaml
+	$(KC) port-forward coordinator-0 8080:8080
 
 stop:
 	$(KC) -n $(NS) delete -f coordinator.yaml -f workers.yaml
+
+bounce:
+	$(KC) -n $(NS) rollout restart statefulset/coordinator statefulset/worker
 
 status:
 	$(KC) config get-contexts
@@ -136,6 +140,9 @@ scale10:
 scale20:
 	$(KC) scale --replicas=20 statefulset/worker
 
+
+q96:
+	$(KC) exec coordinator-0 -it -- trino-cli < tpcdsq96.sql
 
 # =====================================================
 # istio experiments

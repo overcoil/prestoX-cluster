@@ -47,17 +47,17 @@ spec:
         version: v359
     spec:
       containers:
-      - name: worker
+      - name: coordinator
         image: docker.io/overcoil/trino-dbx-coordinator:359
         ports:
         - containerPort: 8080
           name: access
         resources:
           requests:
-            memory: "2G"
+            memory: "8G"
             cpu: "500m"
           limits:
-            memory: "3G"
+            memory: "8G"
             cpu: "1000m"
         env:
           - name: cluster.name

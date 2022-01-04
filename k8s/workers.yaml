@@ -54,10 +54,10 @@ spec:
           name: access
         resources:
           requests:
-            memory: "3G"
+            memory: "8G"
             cpu: "500m"
           limits:
-            memory: "3G"
+            memory: "8G"
             cpu: "1000m"
         env:
           - name: cluster.name
