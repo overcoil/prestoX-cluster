@@ -32,7 +32,8 @@ IC=istioctl
 
 # AWS EKS for primary; the rename-context relies on eksctl setting the newly created context/cluster to the current 
 eksup:
-	$(EC) create cluster --region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
+	$(EC) create cluster \
+		--region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
 		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
 
     # Use back-ticks for subshell because $(...) notation is used by make
@@ -48,11 +49,7 @@ eksdown:
 	$(EC) delete cluster --name $(CLUSTER_NAME) --region $(REGION)
 	$(KC) config delete-context $(EKS_CTX) 
 
-#
-eks2:
-	$(EC) create cluster -f eks2-cluster.yaml
-
-describe:
+eksdescribe:
 	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
 
 # incomplete command line for scaling the EKS cluster
@@ -94,25 +91,26 @@ start:
 
 stop:
 	$(KC) -n $(NS) delete -f coordinator.yaml -f workers.yaml
-	
+
+status:
+	$(KC) config get-contexts
+		
 # the gw & vs resources are optional
 ls:
 #	minikube status
 	$(EC) get cluster --region $(REGION) -v 0
 	$(KC) -n $(NS) get secret,svc,deploy,statefulset,po
-#	$(KC) get po | grep coord | cut -d \  -f 1 > coord.out
 #	$(KC) -n $(NS) get gw,vs
 
 # use the packed-in CLI inside the coordinator node
 cli:
-	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- trino-cli
-#	./tcli --server=127.0.0.1:8080
+	$(KC) exec coordinator-0 -it -- trino-cli
 
 nodecheck:
-	$(KC) exec coordinator-0 -it -- trino-cli < ../../c2-presto-delta-test-material/node-check.sql
+	$(KC) exec coordinator-0 -it -- trino-cli < node-check.sql
 
 sanity:
-	$(KC) exec coordinator-0 -it -- trino-cli < ../../c2-presto-delta-test-material/tpcds-sanity.sql
+	$(KC) exec coordinator-0 -it -- trino-cli < tpcds-sanity.sql
 
 clean:
 	$(KC) -n $(NS) delete secret,gw,vs --all
@@ -181,4 +179,4 @@ worker0:
  
  # check coordinator's node.properties for proper name association
 coord:
-	$(KC) exec `kubectl get po | grep coord | cut -d \  -f 1` -it -- cat /usr/local/trino/etc/node.properties
+	$(KC) exec coordinator-0 -it -- cat /usr/local/trino/etc/node.properties
