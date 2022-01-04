@@ -85,6 +85,9 @@ kubectl config rename-context `kubectl config current-context` trino
 Context "george.chow@trino-eks-benchmark.us-west-2.eksctl.io" renamed to "trino".
 ```
 
+[A port-forward of 8080 into `coordinator-0`](http://localhost:8080) is included with `start` for monitoring & debugging.
+
+
 You stop the cluster with:
 ```sh
 # Stop your EKS cluster
