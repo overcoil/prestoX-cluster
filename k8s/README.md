@@ -87,11 +87,38 @@ Context "george.chow@trino-eks-benchmark.us-west-2.eksctl.io" renamed to "trino"
 
 [A port-forward of 8080 into `coordinator-0`](http://localhost:8080) is included with `start` for monitoring & debugging.
 
+If the port-forward dies, you may need to re-do it manually:
+```sh
+# do this in a new shell cuz this won't terminate
+$ kubectl port-forward coordinator-0 8080:8080
+```
 
-You stop the cluster with:
+
+To stop your cluster:
 ```sh
 # Stop your EKS cluster
 $ make eksdown
+eksctl delete cluster --name trino-eks-benchmark --region us-west-2
+2022-01-04 19:16:38 [ℹ]  eksctl version 0.76.0
+2022-01-04 19:16:38 [ℹ]  using region us-west-2
+2022-01-04 19:16:38 [ℹ]  deleting EKS cluster "trino-eks-benchmark"
+2022-01-04 19:16:38 [ℹ]  will drain 0 unmanaged nodegroup(s) in cluster "trino-eks-benchmark"
+2022-01-04 19:16:39 [ℹ]  deleted 0 Fargate profile(s)
+2022-01-04 19:16:39 [✔]  kubeconfig has been updated
+2022-01-04 19:16:39 [ℹ]  cleaning up AWS load balancers created by Kubernetes objects of Kind Service or Ingress
+2022-01-04 19:16:40 [ℹ]  
+2 sequential tasks: { delete nodegroup "worker-nodes", delete cluster control plane "trino-eks-benchmark" [async] 
+}
+2022-01-04 19:16:41 [ℹ]  will delete stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 19:16:41 [ℹ]  waiting for stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes" to get deleted
+2022-01-04 19:16:41 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 19:16:41 [!]  retryable error (Throttling: Rate exceeded
+	status code: 400, request id: 6ee2addd-51f3-4f48-9d59-b0a9ecda042a) from cloudformation/DescribeStacks - will retry after delay of 7.888854423s
+2022-01-04 19:17:05 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+...
+2022-01-04 19:20:38 [ℹ]  waiting for CloudFormation stack "eksctl-trino-eks-benchmark-nodegroup-worker-nodes"
+2022-01-04 19:20:39 [ℹ]  will delete stack "eksctl-trino-eks-benchmark-cluster"
+2022-01-04 19:20:39 [✔]  all cluster resources were deleted
 ```
 
 You can examine your cluster with:
