@@ -85,12 +85,27 @@ kubectl config rename-context `kubectl config current-context` trino
 Context "george.chow@trino-eks-benchmark.us-west-2.eksctl.io" renamed to "trino".
 ```
 
-[A port-forward of 8080 into `coordinator-0`](http://localhost:8080) is included with `start` for monitoring & debugging.
-
-If the port-forward dies, you may need to re-do it manually:
+To use the Trino server UI, start up another terminal for the port-forward. While the port-foward is active, you can observe Trino via [http://localhost:8080](http://localhost:8080). If the coordinator's pod dies, the port-forward will need to be re-established.
 ```sh
-# do this in a new shell cuz this won't terminate
-$ kubectl port-forward coordinator-0 8080:8080
+$ make portforward
+kubectl port-forward coordinator-0 8080:8080
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+Handling connection for 8080
+E0104 19:17:06.252134   19387 portforward.go:406] an error occurred forwarding 8080 -> 8080: error forwarding port 8080 to pod aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82, uid : container not running (aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82)
+E0104 19:17:06.254085   19387 portforward.go:406] an error occurred forwarding 8080 -> 8080: error forwarding port 8080 to pod aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82, uid : container not running (aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82)
+E0104 19:17:06.252138   19387 portforward.go:406] an error occurred forwarding 8080 -> 8080: error forwarding port 8080 to pod aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82, uid : container not running (aada1f2919c9039242e6528150f3ac3668f4e20ff5431850b343c18d190ccd82)
+E0104 19:17:06.254786   19387 portforward.go:234] lost connection to pod
+Handling connection for 8080
+E0104 19:17:06.256187   19387 portforward.go:346] error creating error stream for port 8080 -> 8080: EOF
 ```
 
 
@@ -158,14 +173,12 @@ aws eks describe-cluster --name trino-eks-benchmark --output json
         }
     }
 }
-
-
 ```
 
 
 ## Kubernetes
 
-To work with Kubernetes, verify your cluster is ready:
+Before starting up your cluster, prepare the context:
 ```sh
 % make status
 kubectl config get-contexts
@@ -330,3 +343,6 @@ The coordinator is similarly controlled:
 2. [k8s/coordinator.yaml](https://github.com/overcoil/prestoX-cluster/blob/master/k8s/coordinator.yaml)
     Look for StatefulSet's `spec.templates.spec.containers.resources.requests` (the starting point for the container) and `.limits` (the ceiling for the container). The default is 2GB and 3GB.
 
+## Resources
+
+[k9s](https://k9scli.io/) is more convenient than `kubectl` especially for watching the logs and dropping into your nodes.

@@ -88,6 +88,8 @@ awscred:
 
 start:
 	$(KC) -n $(NS) apply -f coordinator.yaml -f workers.yaml
+
+portforward:
 	$(KC) port-forward coordinator-0 8080:8080
 
 stop:
@@ -142,7 +144,7 @@ scale20:
 
 
 q96:
-	$(KC) exec coordinator-0 -it -- trino-cli < tpcdsq96.sql
+	$(KC) exec coordinator-0 -it -- trino-cli < tpcds-q96.sql
 
 # =====================================================
 # istio experiments
