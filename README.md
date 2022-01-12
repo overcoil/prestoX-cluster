@@ -1,9 +1,10 @@
-# docker-presto-cluster
+# prestoX-cluster
 
-docker-presto-cluster is a simple tool for launching multiple node [Presto](https://prestosql.io/) cluster on docker container. 
+prestoX-cluster is a package for for running a Presto cluster either for local test (using docker-compose) or large scale realistic benchmarking (using Kubernetes). This package is useable for both forks of "Presto": either the original [PrestoDB](https://prestodb.io/) or the newer [PrestoSQL/Trino fork](https://trino.io/)).
 
-This repo is forked from [Lewuathe/docker-trino-cluster](https://github.com/Lewuathe/docker-trino-cluster) porting it to make it work with latest versions of presto
+For disambiguation, I will write "Presto" to refer to either fork; I will use "PrestoDB" or "Trino" directly when I am referring to a particular fork.
 
+This package is derived from [Lewuathe/docker-trino-cluster](https://github.com/Lewuathe/docker-trino-cluster) and [saj1th/docker-presto-cluster](https://github.com/saj1th/docker-presto-cluster).
 
 - [Usage](#usage)
   * [docker-compose.yml](#docker-composeyml)
@@ -12,77 +13,114 @@ This repo is forked from [Lewuathe/docker-trino-cluster](https://github.com/Lewu
   * [Snapshot Image](#snapshot-image)
 - [LICENSE](#license)
 
+# Prerequisite
 
-
-
+The starting point for using this package are the build artifacts (e.g., `presto-server-*.tar.gz`/`presto-cli-*-executable.jar` or `trino-server-*.tar.gz`/`trino-cli-*-executable.jar` ) as output by either Presto builds ([PrestoDB](https://prestodb.io/docs/current/installation/deployment.html), [Trino](https://trino.io/docs/current/installation/deployment.html)). This package is also useable with custom builds of either (say, from a private/local fork). Irrespective, keep tab of the fork you're working on as that drives the names for downstream outputs (e.g., Docker containers, Kubernetes manifests, etc). In the case of Trino, this package is useable for version 351 and onward which uses the new name (Trino). (See [Release 351](https://trino.io/docs/current/release/release-351.html) for details on specifics.)
 
 # Usage
 
-Images are uploaded in [DockerHub](https://hub.docker.com/).  Each docker image gets two arguments
+Use the [Makefile](https://github.com/overcoil/prestoX-cluster/blob/master/Makefile) to execute each step as required. 
 
-|Index|Argument|Description|
-|:---|:---|:---|
-|1|discovery_uri| Required parameter to specify the URI to coordinator host|
-|2|node_id|Optional parameter to specify the node identity. UUID will be generated if not given|
 
-You can launch multi node Presto cluster in the local machine as follows.
+(I have a set of images based on [Presto 0.266]() and [a Trino 359-based fork]() available for demo/exploration at:
+* [https://hub.docker.com/repository/docker/overcoil/presto-base](https://hub.docker.com/repository/docker/overcoil/presto-base)
+* [https://hub.docker.com/repository/docker/overcoil/presto-dbx-coordinator](https://hub.docker.com/repository/docker/overcoil/presto-dbx-coordinator)
+* [https://hub.docker.com/repository/docker/overcoil/presto-dbx-worker](https://hub.docker.com/repository/docker/overcoil/presto-dbx-worker) )
+
+* [https://hub.docker.com/repository/docker/overcoil/trino-base](https://hub.docker.com/repository/docker/overcoil/trino-base)
+* [https://hub.docker.com/repository/docker/overcoil/trino-dbx-coordinator](https://hub.docker.com/repository/docker/overcoil/trino-dbx-coordinator)
+* [https://hub.docker.com/repository/docker/overcoil/trino-dbx-worker](https://hub.docker.com/repository/docker/overcoil/trino-dbx-worker) )
+
+## Specify the Version
 
 ```sh
-# Create a custom network
-$ docker network create presto_network
-
-# Launch coordinator
-$ docker run -p 8080:8080 -it \
-    --net presto_network \
-    --name coordinator \
-    saj1th/presto-dbx-coordinator:0.263 http://localhost:8080
-
-# Launch two workers
-$ docker run -it \
-    --net presto_network \
-    --name worker1 \
-    saj1th/presto-dbx-worker:0.263 http://coordinator:8080
-
-$ docker run -it \
-    --net presto_network \
-    --name worker2 \
-    saj1th/presto-dbx-worker:0.263 http://coordinator:8080
+$ vi Makefile
+# specify the version you are working with
+# fill in TRINO_VER & PRESTO_VER as required
 ```
 
+## Source the build artifacts
+The Makefile assumes that you have the Presto artifacts installed/available in your local Maven repo. If you are doing otherwise, skip the following and instead place the two binaries into `presto-base` directly. We require both the server run-time package and the executable CLI. Remember to also set the permissions.
 
-## docker-compose.yml
+|Presto Variant|Server run-time|CLI|
+|:---|:---|:---|
+|PrestoDB|`presto-server-<version>.tar.gz`| `presto-cli-<version>-executable.jar`|
+|Trino|`trino-server-<version>.tar.gz`| `trino-cli-<version>-executable.jar`|
 
-[`docker-compose`](https://docs.docker.com/compose/compose-file/) enables us to coordinator multiple containers more easily. You can launch a multiple node docker presto cluster with the following yaml file. `command` is required to pass discovery URI and node id information which must be unique in a cluster. If node ID is not passed, the UUID is generated automatically at launch time.
 
-```yaml
-version: '3'
-
-services:
-  coordinator:
-    image: "saj1th/presto-dbx-coordinator:${PRESTO_VERSION}"
-    ports:
-      - "8080:8080"
-    container_name: "coordinator"
-    command: http://coordinator:8080 coordinator
-  worker0:
-    image: "saj1th/presto-dbx-worker:${PRESTO_VERSION}"
-    container_name: "worker0"
-    ports:
-      - "8081:8081"
-    command: http://coordinator:8080 worker0
-  worker1:
-    image: "saj1th/presto-dbx-worker:${PRESTO_VERSION}"
-    container_name: "worker1"
-    ports:
-      - "8082:8081"
-    command: http://coordinator:8080 worker1
+```sh
+# to extract the PrestoDB .tar.gz from your Maven repo
+$ make pcopy
 ```
 
-The version can be specified as the environment variable.
+```sh
+# to extract the Trino .tar.gz from your Maven repo
+$ make tcopy
+```
 
+## Build the Docker images
+
+To build the Docker images, decide on the container registry and user id you will use and set the value of `DOCKERHUB_ID` appropriately. This value must be supplied even if you plan to run a local cluster. (In that case, you can skip the push to the container registry.) If you are using Kubernetes, you *must* push your images to a container registry for your Kubernetes cluster to find your images. The example below is for my id (`overcoil`) in DockerHub  (`docker.io`).
+
+
+```sh
+# to build PrestoDB images
+$ DOCKERHUB_ID=docker.io/overcoil make pdev
 ```
-$ PRESTO_VERSION=0.263 docker-compose up
+
+```sh
+# to build Trino images
+$ DOCKERHUB_ID=docker.io/overcoil make tdev
 ```
+
+The CLI executable is installed into the coordinator node's image for your convenience. You will be able to `docker exec` into the node to use it. See [] below.
+
+
+## Push your Docker images (optional)
+If you plan to run your cluster from Kubernetes, you *must* push your images to a container registry for your Kubernetes cluster to pull from. You will also need to push your images if you wish to share them with other. Remember to set the permission of your images and configure the authentication you require in your cluster. 
+
+
+```sh
+# to push your PrestoDB images
+$ DOCKERHUB_ID=docker.io/overcoil make ppush
+```
+
+```sh
+# to push your Trino images
+$ DOCKERHUB_ID=docker.io/overcoil make tpush
+```
+
+Each invocation of a Docker image (corresponding to one node of your Presto cluster) is invoked with up to six arguments:
+
+|Index|Argument|Description|Default Value|
+|:---|:---|:---|:---|
+|1|discovery_uri| Required parameter to specify the URI to coordinator host| N/A|
+|2|node_id|Optional parameter to specify the node identity.|generated UUID|
+|3|querymaxmemorypernode|Parameter to specify the node's `query.max-memory-per-node` setting inside its `config.properties`|`8GB` REVISIT|
+|4|querymaxtotalmemorypernode|Parameter to specify the node's `query.max-total-memory-per-node` setting inside its `config.properties`|`8GB`|
+|5|querymaxmemory|Parameter to specify the node's `query.max-memory` setting inside its `config.properties`|`8GB`|
+|6|querymaxtotalmemory|Parameter to specify the node's `query.max-total-memory` setting inside its `config.properties`|`8GB`|
+
+The 4 `query*memory*` settings are used to specify the size of each node. Refer to the memory management properties documentation in [PrestoDB](https://prestodb.io/docs/current/admin/properties.html#memory-management-properties) & [Trino](https://trino.io/docs/current/admin/properties-memory-management.html) for details on these.
+
+
+
+## Running a local cluster via `docker-compose.yml`
+
+[`docker-compose`](https://docs.docker.com/compose/compose-file/) enables us to coordinate multiple containers more easily. The pre-built target `prun` and `trun` uses [docker-compose.yml](https://github.com/overcoil/prestoX-cluster/blob/master/docker-compose.yml) to start up a multi-node cluster.
+
+```sh
+# to start up a local PrestoDB cluster
+$ PRESTVAR=presto DOCKERHUB_ID=docker.io/overcoil make prun
+```
+
+```sh
+# to start up a local Trino cluster
+$ PRESTVAR=trino DOCKERHUB_ID=docker.io/overcoil make trun
+```
+
+Before starting up your cluster, review the following section on catalog configuration. In the case of the demo images above (`docker.io/overcoil/presto-*`,  and `trino-*`), a parameterize `deltas3` catalog is included for convenient access to your S3 bucket.  
+
 
 # Custom Catalogs
 
