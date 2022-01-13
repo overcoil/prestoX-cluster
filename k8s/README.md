@@ -5,15 +5,15 @@ been included as a starting point but you can readily use [Minikube](https://min
 
 This sub-package is structured similarly to the [outer package](../README.md) as a Makefile with multiple targets. As with running a local
 cluster via docker-compose, choose the steps (targets) that you require. A typical flow will goes as:
-* Start up your Kubernetes cluster. For EKS, see [#start-an-eks-cluster] & [#stop-an-eks-cluster]
-* Prepare the cluster with a namespace and AWS credential secret [#prepare-the-kubernetes-cluster]
-* Start up your desired Presto [#start-up-prestox]
-* Validate the readiness of your cluster [#validate-your-cluster]
-* Set up port-forwarding to access the coordinator Web UI [#access-server-web-ui]
-* Use your server [#use-your-server]
-* Scale the cluster as required [#scale-your-prestox-cluster]
-* Stop Presto [#stop-prestox]
-* Tear down your Kubernetes cluster. For EKS, see [#stop-an-eks-cluster]
+* Start up your Kubernetes cluster. For EKS, see (#start-an-eks-cluster) & (#stop-an-eks-cluster)
+* Prepare the cluster with a namespace and AWS credential secret (#prepare-the-kubernetes-cluster)
+* Start up your desired Presto (#start-up-prestox)
+* Validate the readiness of your cluster (#validate-your-cluster)
+* Set up port-forwarding to access the coordinator Web UI (#access-server-web-ui)
+* Use your server (#use-your-server)
+* Scale the cluster as required (#scale-your-prestox-cluster)
+* Stop Presto (#stop-prestox)
+* Tear down your Kubernetes cluster. For EKS, see (#stop-an-eks-cluster)
 
 
 
@@ -320,7 +320,7 @@ scales up your cluster to 10 nodes
 $ kubectl scale --replicas=10 statefulset/worker
 statefulset.apps/worker scaled
 ```
-The desired number of workers is the replica value. Do provide sufficient time for the workers to start up and to register themselves with the cluster coordinator. Workers are created serially in a Kubernetes statefulset so be patient if you are scaling up to a large number of workers. See [#validate-your-cluster] to monitor the progress.
+The desired number of workers is the replica value. Do provide sufficient time for the workers to start up and to register themselves with the cluster coordinator. Workers are created serially in a Kubernetes statefulset so be patient if you are scaling up to a large number of workers. See (#validate-your-cluster) to monitor the progress.
 
 
 ## Access server Web UI
