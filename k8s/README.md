@@ -42,7 +42,17 @@ $ brew install awscli eksctl
 
 ### Starting an EKS cluster 
 
-Start by creating a cluster. This is a relatively slow process (~20 minutes) so start it before your coffee/tea/drink. Check the `Makefile` for the specification of the nodes. By default, we use 2 nodes (NODES) of [`m4.xlarge`](https://aws.amazon.com/ec2/instance-types/)(NTYPE) (4 vCPU; 16 GiB with 'High' Network Performance).
+Start by creating your EKS cluster. This is a relatively slow process (~20 minutes) so start it before your tea/brew. A summary of the configuration available is as below; check `Makefile` for the complete story. Also see [the eksctl docs](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html).
+
+|Makefile variable| Default Value |Description|
+|:---|:---|:---|
+| `REGION` | `us-west-2` | region of the cluster |
+| `KVER` | `1.21` | version of Kubernetes to use; see [reference](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) |
+| `CLUSTER_NAME` | `trino-eks-benchmark` | the EKS cluster name; EKS uses this (human readable) name to refer to clusters |
+| `NTYPE` | `m4.2xlarge` | instance types to use for workers in the nodegroup. `m4.2xlarge` has 8 vCPU & 32 Gi RAM |
+| `NODES` | 2 | number of initial nodes|
+| `MIN_NODES` | 2 | minimum number of nodes in the nodegroup |
+| `MAX_NODES` | 5 | maximum number of nodes in the nodegroup |
 
 
 ```sh
@@ -245,9 +255,8 @@ serviceaccount/svc-worker created
 statefulset.apps/worker created
 ```
 
-The 
 
-Now confirm the system is starting up:
+For a global view of your PrestoX cluster inside the Kubernetes cluster, use the `ls` target:
 
 ```sh
 $ make ls

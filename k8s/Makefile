@@ -1,6 +1,6 @@
 NS=trino
 ISTIO_NS=istio-system
-EKS_CTX=trino
+K8S_CTX=trino
 
 
 REGION=us-west-2
@@ -37,7 +37,7 @@ eksup:
 		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
 
     # Use back-ticks for subshell because $(...) notation is used by make
-	$(KC) config rename-context `$(KC) config current-context` $(EKS_CTX) 
+	$(KC) config rename-context `$(KC) config current-context` $(K8S_CTX) 
 
 dryrun:
 	$(EC) create cluster --dry-run \
@@ -47,7 +47,7 @@ dryrun:
 # you can also delete just the nodegroup
 eksdown:
 	$(EC) delete cluster --name $(CLUSTER_NAME) --region $(REGION)
-	$(KC) config delete-context $(EKS_CTX) 
+	$(KC) config delete-context $(K8S_CTX) 
 
 eksdescribe:
 	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
