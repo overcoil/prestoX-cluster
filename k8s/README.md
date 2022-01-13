@@ -5,15 +5,15 @@ been included as a starting point but you can readily use [Minikube](https://min
 
 This sub-package is structured similarly to the [outer package](../README.md) as a Makefile with multiple targets. As with running a local
 cluster via docker-compose, choose the steps (targets) that you require. A typical flow will goes as:
-* Start up your Kubernetes cluster. For EKS, see (#start-an-eks-cluster) & (#stop-an-eks-cluster)
-* Prepare the cluster with a namespace and AWS credential secret (#prepare-the-kubernetes-cluster)
-* Start up your desired Presto (#start-up-prestox)
-* Validate the readiness of your cluster (#validate-your-cluster)
-* Set up port-forwarding to access the coordinator Web UI (#access-server-web-ui)
-* Use your server (#use-your-server)
-* Scale the cluster as required (#scale-your-prestox-cluster)
-* Stop Presto (#stop-prestox)
-* Tear down your Kubernetes cluster. For EKS, see (#stop-an-eks-cluster)
+* Start up your Kubernetes cluster. For EKS, see [Start an EKS Cluster](#start-an-eks-cluster)
+* Prepare the cluster with a namespace and AWS credential secret [Prepare the Kubernetes cluster](#prepare-the-kubernetes-cluster)
+* [Start Up PrestoX](#start-up-prestox)
+* [Validate your Cluster](#validate-your-cluster)
+* [Acesss server Web UI](#access-server-web-ui)
+* [Use your Server](#use-your-server)
+* [Scale your PrestoX cluster](#scale-your-prestox-cluster)
+* [Stop PrestoX](#stop-prestox)
+* Tear down your Kubernetes cluster. For EKS, see [Stop an EKS cluster](#stop-an-eks-cluster)
 
 
 
