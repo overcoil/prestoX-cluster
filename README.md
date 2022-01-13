@@ -21,6 +21,13 @@ The starting point for using this package are the build artifacts (e.g., `presto
 
 Use the [Makefile](https://github.com/overcoil/prestoX-cluster/blob/master/Makefile) to execute each step as required. 
 
+A typical flow will goes as:
+* Source the Presto artifacts
+* Build and optionally push images from these
+* Setup up the cluster host (Docker or Kubernetes)
+* Configure the cluster
+* Run the cluster
+
 
 (I have a set of images based on [Presto 0.266]() and [a Trino 359-based fork]() available for demo/exploration at:
 * [https://hub.docker.com/repository/docker/overcoil/presto-base](https://hub.docker.com/repository/docker/overcoil/presto-base)
@@ -31,7 +38,8 @@ Use the [Makefile](https://github.com/overcoil/prestoX-cluster/blob/master/Makef
 * [https://hub.docker.com/repository/docker/overcoil/trino-dbx-coordinator](https://hub.docker.com/repository/docker/overcoil/trino-dbx-coordinator)
 * [https://hub.docker.com/repository/docker/overcoil/trino-dbx-worker](https://hub.docker.com/repository/docker/overcoil/trino-dbx-worker) )
 
-## Specify the Version
+
+## 1. Specify the Version
 
 ```sh
 $ vi Makefile
@@ -39,7 +47,7 @@ $ vi Makefile
 # fill in TRINO_VER & PRESTO_VER as required
 ```
 
-## Source the build artifacts
+## 2. Source the build artifacts
 The Makefile assumes that you have the Presto artifacts installed/available in your local Maven repo. If you are doing otherwise, skip the following and instead place the two binaries into `presto-base` directly. We require both the server run-time package and the executable CLI. Remember to also set the permissions.
 
 |Presto Variant|Server run-time|CLI|
@@ -58,7 +66,7 @@ $ make pcopy
 $ make tcopy
 ```
 
-## Build the Docker images
+## 3. Build the Docker images
 
 To build the Docker images, decide on the container registry and user id you will use and set the value of `DOCKERHUB_ID` appropriately. This value must be supplied even if you plan to run a local cluster. (In that case, you can skip the push to the container registry.) If you are using Kubernetes, you *must* push your images to a container registry for your Kubernetes cluster to find your images. The example below is for my id (`overcoil`) in DockerHub  (`docker.io`).
 
@@ -76,7 +84,7 @@ $ DOCKERHUB_ID=docker.io/overcoil make tdev
 The CLI executable is installed into the coordinator node's image for your convenience. You will be able to `docker exec` into the node to use it. See [] below.
 
 
-## Push your Docker images (optional)
+## 4. Push your Docker images (optional)
 If you plan to run your cluster from Kubernetes, you *must* push your images to a container registry for your Kubernetes cluster to pull from. You will also need to push your images if you wish to share them with other. Remember to set the permission of your images and configure the authentication you require in your cluster. 
 
 
@@ -101,13 +109,12 @@ Each invocation of a Docker image (corresponding to one node of your Presto clus
 |5|querymaxmemory|Parameter to specify the node's `query.max-memory` setting inside its `config.properties`|`8GB`|
 |6|querymaxtotalmemory|Parameter to specify the node's `query.max-total-memory` setting inside its `config.properties`|`8GB`|
 
-The 4 `query*memory*` settings are used to specify the size of each node. Refer to the memory management properties documentation in [PrestoDB](https://prestodb.io/docs/current/admin/properties.html#memory-management-properties) & [Trino](https://trino.io/docs/current/admin/properties-memory-management.html) for details on these.
+The 4 `query.*memory*` settings control the size of each node. Refer to the memory management properties documentation in [PrestoDB](https://prestodb.io/docs/current/admin/properties.html#memory-management-properties) & [Trino](https://trino.io/docs/current/admin/properties-memory-management.html) for details on these.
 
 
+## 5. Running a local cluster
 
-## Running a local cluster via `docker-compose.yml`
-
-[`docker-compose`](https://docs.docker.com/compose/compose-file/) enables us to coordinate multiple containers more easily. The pre-built target `prun` and `trun` uses [docker-compose.yml](https://github.com/overcoil/prestoX-cluster/blob/master/docker-compose.yml) to start up a multi-node cluster.
+[`docker-compose`](https://docs.docker.com/compose/compose-file/) coordinates multiple containers from a single YAML file. The pre-built target `prun` and `trun` uses [docker-compose.yml](https://github.com/overcoil/prestoX-cluster/blob/master/docker-compose.yml) to start up a multi-node cluster.
 
 ```sh
 # to start up a local PrestoDB cluster
@@ -119,12 +126,12 @@ $ PRESTVAR=presto DOCKERHUB_ID=docker.io/overcoil make prun
 $ PRESTVAR=trino DOCKERHUB_ID=docker.io/overcoil make trun
 ```
 
-Before starting up your cluster, review the following section on catalog configuration. In the case of the demo images above (`docker.io/overcoil/presto-*`,  and `trino-*`), a parameterize `deltas3` catalog is included for convenient access to your S3 bucket.  
+In the case of the demo images above (`docker.io/overcoil/presto-*`,  and `trino-*`), a parameterized `deltas3` catalog is included for convenient access to your S3 bucket. (You supply an AWS key pair with the read privilege for your bucket.)
 
 
-# Custom Catalogs
+### Custom Catalogs
 
-While the image provides several default connectors (i.e. JMX, Memory, TPC-H and TPC-DS), you may want to override the catalog property with your own ones. That can be easily achieved by mounting the catalog directory onto `/usr/local/presto/etc/catalog`. Please look at [`volumes`](https://docs.docker.com/compose/compose-file/#volumes) configuration for docker-compose.
+While the image provides several default connectors (i.e. JMX, Memory, TPC-H and TPC-DS), you may want to override the catalog property with your own ones. You can use mount a Docker volume to replace `/usr/local/presto/etc/catalog` of all nodes of your cluster. Refer to [`volumes`](https://docs.docker.com/compose/compose-file/#volumes) for details.
 
 ```yaml
 services:
@@ -137,6 +144,11 @@ services:
     volumes:
       - ./example/etc/catalog:/usr/local/presto/etc/catalog
 ```
+
+## 6. Running on Kubernetes
+
+See the [k8s](k8s) folder and its [README.md](k8s/README.md).
+
 
 # Development
 
