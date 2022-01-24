@@ -1,3 +1,6 @@
-secret*.yaml
 *.out
+_coordinator.yaml
+_workers.yaml
+cm-configproperties.yaml
+secret-awscred.yaml
 
