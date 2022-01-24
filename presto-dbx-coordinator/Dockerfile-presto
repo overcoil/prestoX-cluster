@@ -5,14 +5,14 @@ FROM ${DOCKERHUB_ID}/presto-base:${VERSION}
 
 # TODO: I couldn't get ARG/ENV to work properly to externalize/parameterize PRESTVAR 
 
-LABEL maintainer="saj1th"
+LABEL maintainer="overcoil"
 
-COPY etc /usr/local/presto/etc
-COPY etc-catalog-delta-presto.properties /usr/local/presto/etc/catalog/delta.properties
+COPY etc /usr/local/px/etc
+COPY px-etc-catalog-delta.properties /usr/local/px/etc/catalog/delta.properties
 
-RUN ls -laR /usr/local/presto/etc/
+RUN ls -laR /usr/local/px/etc/
 
 EXPOSE 8080
 
-WORKDIR /usr/local/presto
-ENTRYPOINT ["./scripts/presto.sh"]
+WORKDIR /usr/local/px
+ENTRYPOINT ["./scripts/px-prep.sh"]

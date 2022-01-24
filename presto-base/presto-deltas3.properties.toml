@@ -1,0 +1,7 @@
+[template]
+src = "deltas3.properties.tmpl"
+dest = "/usr/local/px/etc/catalog/deltas3.properties"
+keys = [
+    "/px/deltas3/awsaccesskeyid",
+    "/px/deltas3/awssecretkeyid"
+]

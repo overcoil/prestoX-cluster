@@ -2,11 +2,11 @@ ARG VERSION
 ARG DOCKERHUB_ID
 
 FROM ${DOCKERHUB_ID}/trino-base:${VERSION}
-LABEL maintainer="saj1th"
+LABEL maintainer="overcoil"
 
-COPY etc /usr/local/trino/etc
-COPY etc-catalog-delta-trino.properties /usr/local/trino/etc/catalog/delta.properties
+COPY etc /usr/local/px/etc
+COPY px-etc-catalog-delta.properties /usr/local/px/etc/catalog/delta.properties
 EXPOSE 8081
 
-WORKDIR /usr/local/trino
-ENTRYPOINT [ "./scripts/trino.sh" ]
+WORKDIR /usr/local/px
+ENTRYPOINT [ "./scripts/px-prep.sh" ]

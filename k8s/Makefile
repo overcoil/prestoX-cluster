@@ -1,40 +1,62 @@
-NS=trino
-ISTIO_NS=istio-system
-K8S_CTX=trino
-
+#
+# Makefile for operating a Presto cluster in Kubernetes
+#
+# NB: "px" refers to the Presto in the communal sense of either forks: "PrestoDB" or "Trino"
+#
+# Override this as required;
+# If one is using AWS/EKS, refer to the optional cluster-eks.yaml as required.
+#
 
 REGION=us-west-2
-
-# ref: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
-KVER=1.21
-CLUSTER_NAME=trino-eks-benchmark
-NGROUP=worker-nodes
-
-# GP: 8 vCPU/32 Gi RAM
-#NTYPE=t3.2xlarge
+CLUSTER_NAME=px-benchmark
+K8S_CTX=px
+NS1=trino
+NS2=prestodb
+NS=$(NS1)
 
 # GP: m4.2xlarge: 8 vCPU/32 Gi RAM; USD0.40/h
-NTYPE=m4.2xlarge
 NODES=2
+NTYPE=m4.2xlarge
+NGROUP=worker-nodes
 MIN_NODES=2
 MAX_NODES=5
 
+# add --profile yourprofile if required
+AWS=aws --profile eks.min
 
-# you must have 
-AWS=aws
+#EC=AWS_PROFILE=eks.min eksctl
+EC=eksctl 
+
 KC=kubectl
-EC=eksctl
 IC=istioctl
+ISTIO_NS=istio-system
 
-.phony=mk eks ns label unlabel default awscred gw vs start stop ls istio extern cli nodetest sanity clean rawshell resumeshell worker0 coord
+# ref: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
+KVER=1.21
+
+.phony=mk ns1 ns2 def1 def2 go1 go2 \
+	awscred configproperties eksup eksdown dryrun eksdescribe kscale vpcs subnets \
+	start stop pf bounce \
+	cli nodetest sanity clean rawshell resumeshell \
+	istio label unlabel gw vs extern \
+	bashc bashw0 bashw1 \
+	shrink scale3 scale10 scale20 q96
+
+
 
 # =====================================================
 
 # AWS EKS for primary; the rename-context relies on eksctl setting the newly created context/cluster to the current 
 eksup:
-	$(EC) create cluster \
-		--region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
-		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+# var 1: 
+#	$(EC) create cluster --version $(KVER) \
+#		--region $(REGION) --name $(CLUSTER_NAME) \
+#		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+
+# var 2: use cluster-eks.yaml to specify all parameters
+	$(EC) create cluster -f cluster-eks.yaml  
+	# do a version check cuz the -f option above has option to specify KVER
+	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json | jq -r '.cluster.version'
 
     # Use back-ticks for subshell because $(...) notation is used by make
 	$(KC) config rename-context `$(KC) config current-context` $(K8S_CTX) 
@@ -58,11 +80,11 @@ kscale:
 
 # review your vpcs
 vpcs:
-	aws --region $(REGION) ec2 describe-vpcs --output json | jq -r '.Vpcs[]| .VpcId + " " + .CidrBlock + " " + (.IsDefault|tostring)'
+	$(AWS) --region $(REGION) ec2 describe-vpcs --output json | jq -r '.Vpcs[]| .VpcId + " " + .CidrBlock + " " + (.IsDefault|tostring)'
 
 # review subnets in your vpcs
 subnets:
-	aws --region $(REGION) ec2 describe-subnets --output json | jq -r '.Subnets[]| .SubnetId + " " + .VpcId + " " + .AvailabilityZone + " " + .CidrBlock'
+	$(AWS) --region $(REGION) ec2 describe-subnets --output json | jq -r '.Subnets[]| .SubnetId + " " + .VpcId + " " + .AvailabilityZone + " " + .CidrBlock'
 
 
 # =====================================================
@@ -75,51 +97,70 @@ mk:
 
 # =====================================================
 
-ns:
-	$(KC) create ns $(NS)
+ns1:
+	$(KC) create ns $(NS1)
 
+ns2:
+	$(KC) create ns $(NS2)
 
+def1:
+	$(KC) config set-context --current --namespace=$(NS1)
+	ls -l _coordinator.yaml _workers.yaml
 
-default:
-	$(KC) config set-context --current --namespace=$(NS)
+def2:
+	$(KC) config set-context --current --namespace=$(NS2)
+	ls -l _coordinator.yaml _workers.yaml
+
+got:
+	rm -f _coordinator.yaml _workers.yaml
+	ln -s trino-coordinator.yaml _coordinator.yaml
+	ln -s trino-workers.yaml _workers.yaml
+	
+gop:
+	rm -f _coordinator.yaml _workers.yaml
+	ln -s prestodb-coordinator.yaml _coordinator.yaml
+	ln -s prestoDB-workers.yaml _workers.yaml
 
 awscred:
-	$(KC) -n $(NS) apply -f secret-awscred.yaml
+	$(KC) apply -f secret-awscred.yaml
+
+configproperties:
+	$(KC) apply -f cm-configproperties.yaml
 
 start:
-	$(KC) -n $(NS) apply -f coordinator.yaml -f workers.yaml
+	$(KC) apply -f _coordinator.yaml -f _workers.yaml
 
-portforward:
+pf:
 	$(KC) port-forward coordinator-0 8080:8080
 
 stop:
-	$(KC) -n $(NS) delete -f coordinator.yaml -f workers.yaml
+	$(KC) delete -f _coordinator.yaml -f _workers.yaml
 
 bounce:
-	$(KC) -n $(NS) rollout restart statefulset/coordinator statefulset/worker
+	$(KC) rollout restart statefulset/coordinator statefulset/worker
 
-status:
+statust:
 	$(KC) config get-contexts
 		
 # the gw & vs resources are optional
 ls:
 #	minikube status
-	$(EC) get cluster --region $(REGION) -v 0
-	$(KC) -n $(NS) get secret,svc,deploy,statefulset,po
-#	$(KC) -n $(NS) get gw,vs
+#	$(EC) get cluster --region $(REGION) -v 0
+	$(KC) get cm,secret,svc,deploy,statefulset,po
+#	$(KC) get gw,vs
 
 # use the packed-in CLI inside the coordinator node
 cli:
-	$(KC) exec coordinator-0 -it -- trino-cli
+	$(KC) exec coordinator-0 -it -- px-cli
 
 nodecheck:
-	$(KC) exec coordinator-0 -it -- trino-cli < node-check.sql
+	$(KC) exec coordinator-0 -it -- px-cli < q/node-check.sql
 
 sanity:
-	$(KC) exec coordinator-0 -it -- trino-cli < tpcds-sanity.sql
+	$(KC) exec coordinator-0 -it -- px-cli < q/tpcds-sanity.sql
 
 clean:
-	$(KC) -n $(NS) delete secret,gw,vs --all
+	$(KC) delete secret,gw,vs --all
 
 bashc:
 	$(KC) exec coordinator-0 -it -- bash
@@ -162,10 +203,10 @@ istio:
 # =====================================================
 # gateway 
 gw:
-	$(KC) -n $(NS) apply -f service-gateway.yaml
+	$(KC) apply -f service-gateway.yaml
 
 vs:
-	$(KC) -n $(NS) apply -f trino-cli-vs.yaml
+	$(KC) apply -f trino-cli-vs.yaml
 
 # get public access
 extern:
@@ -184,8 +225,13 @@ resumeshell:
 
 # check worker0's node.properties for proper name association
 worker0:
-	$(KC) exec worker-0 -it -- cat /usr/local/trino/etc/node.properties
+	$(KC) exec worker-0 -it -- cat /usr/local/px/etc/node.properties
+	$(KC) exec worker-0 -it -- cat /usr/local/px/etc/config.properties
+	$(KC) exec worker-0 -it -- cat /usr/local/px/etc/catalog/deltas3.properties
  
  # check coordinator's node.properties for proper name association
-coord:
-	$(KC) exec coordinator-0 -it -- cat /usr/local/trino/etc/node.properties
+coord0:
+	$(KC) exec coordinator-0 -it -- cat /usr/local/px/etc/node.properties
+	$(KC) exec coordinator-0 -it -- cat /usr/local/px/etc/config.properties
+	$(KC) exec coordinator-0 -it -- cat /usr/local/px/etc/catalog/deltas3.properties
+

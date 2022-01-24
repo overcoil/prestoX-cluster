@@ -1,0 +1,79 @@
+#
+# k8s yaml for Trino workers:
+#   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each Trino node (pod)
+#   1 Service - a headless service for the worker pool 
+#   1 Service Account - access control
+#
+# The secret is passed in to configure deltas3.properties dynamically for reading S3 Delta tables
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  labels:
+    app: trino
+    version: v359
+spec:
+  selector:
+    app: trino
+    version: v359
+  clusterIP: None
+  ports:
+  - port: 8081
+    name: web
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: svc-worker
+  labels:
+    account: SVC_W
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: trino
+      version: v359
+  serviceName: worker
+  replicas: 6
+  template:
+    metadata:
+      labels:
+        app: trino
+        version: v359
+    spec:
+      containers:
+      - name: worker
+        image: docker.io/overcoil/trino-dbx-worker:359
+        ports:
+        - containerPort: 8081
+          name: access
+        resources:
+          requests:
+            memory: "8G"
+            cpu: "2000m"
+          limits:
+            memory: "8G"
+            cpu: "2000m"
+        env:
+          - name: cluster.name
+            value: k8s-logs
+          - name: node.name
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: cm-px-clusterproperties
+        - secretRef:
+            name: secret-awscred
+        command: ["./scripts/px-prep.sh"]
+        args: ["http://coordinator-0.coordinator.trino.svc.cluster.local:8080", $(node.name)]
+        imagePullPolicy: Always
+      dnsConfig:
+        searches:
+          - worker.trino.svc.cluster.local

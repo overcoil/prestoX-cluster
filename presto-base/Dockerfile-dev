@@ -3,7 +3,7 @@
 #
 
 FROM openjdk:11-slim
-LABEL maintainer="saj1th"
+LABEL maintainer="overcoil"
 
 ARG VERSION
 # these two arg need to be filled in as:
@@ -24,6 +24,8 @@ ARG PRESTVAR
 
 ENV PRESTO_VERSION="${VERSION}"
 ENV PRESTO_HOME=/usr/local/"${PRESTVAR}"
+# PX_HOME is a fork-invariant path to reduce the muliplication of options 
+ENV PX_HOME=/usr/local/px
 #ENV BASE_URL=https://repo1.maven.org/maven2
 
 # install dev tools
@@ -46,7 +48,7 @@ RUN apt-get install -y \
 
 # install confd to handle template from env var
 # https://github.com/kelseyhightower/confd/blob/master/docs/installation.md
-# note the addition the ENV further down
+# note the addition to ENV further down
 RUN wget https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 \
     && mkdir -p /opt/confd/bin \
     && mkdir -p /etc/confd/conf.d \
@@ -54,9 +56,16 @@ RUN wget https://github.com/kelseyhightower/confd/releases/download/v0.16.0/conf
     && mv confd-0.16.0-linux-amd64 /opt/confd/bin/confd \
     && chmod +x /opt/confd/bin/confd
 
-COPY ${PRESTVAR}-deltas3.toml /etc/confd/conf.d/deltas3.toml
+# "deltas3" is a stock catalog configured (via k8s secret/env or Docker .env) for use with $path  
+# only the Trino version support DPP at present
+COPY ${PRESTVAR}-deltas3.properties.toml /etc/confd/conf.d/deltas3.properties.toml
+COPY ${PRESTVAR}-deltas3.properties.tmpl /etc/confd/templates/deltas3.properties.tmpl 
 
-COPY deltas3.properties.tmpl /etc/confd/templates/deltas3.properties.tmpl
+# the fragment controls the memory configuration of each node
+COPY px-config.properties-fragment.toml /etc/confd/conf.d/config.properties-fragment.toml 
+COPY px-config.properties-fragment.tmpl /etc/confd/templates/config.properties-fragment.tmpl
+
+# NB: config.properties.template must fold in config.properties-fragment by derived images; see presto/trino.sh
 
 RUN apt-get install -y  python-is-python3   
 
@@ -71,15 +80,16 @@ WORKDIR /usr/local/bin
 ADD ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
 RUN chmod +x ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar
 
-# make the CLI available with a version-invariant name
-RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar ${PRESTVAR}-cli
+# make the CLI available with a fork/version-invariant name
+RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar px-cli
 
 WORKDIR /usr/local
 ADD ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz /usr/local
 #RUN tar xvzf ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
 RUN ln -s /usr/local/${PRESTVAR}-server-${PRESTO_VERSION} $PRESTO_HOME
+RUN ln -s /usr/local/${PRESTVAR}-server-${PRESTO_VERSION} $PX_HOME
 
-COPY scripts-${PRESTVAR} ${PRESTO_HOME}/scripts
+COPY scripts ${PX_HOME}/scripts
 
 WORKDIR /usr/local/deltalake
 

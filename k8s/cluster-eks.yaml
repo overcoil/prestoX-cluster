@@ -1,0 +1,29 @@
+# 
+# This YAML is for eksctl, not kubectl!
+#
+# A barebone EKS cluster requires at least 2 subnets. For simplicity, go with public subnets to bypass any peering/config.
+# Once the cluster is up, you'll probably want to rename the verbose kubeconfig context name. Then, it's ready for kubectl.
+#
+# ref: https://eksctl.io/usage/creating-and-managing-clusters/
+#
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: PX-trino-eks-benchmark
+  region: us-west-2
+
+vpc:
+  subnets:
+    public:
+      us-west-2a: { id: subnet-037e0c351390f3127 }
+      us-west-2b: { id: subnet-044cee5348d4b3ea3 }
+      us-west-2c: { id: subnet-00e02fb1b1db10fef }
+
+nodeGroups:
+  - name: worker
+    labels: { role: workers }
+    instanceType: m4.2xlarge
+    desiredCapacity: 2 
+    privateNetworking: false
+
