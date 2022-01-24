@@ -65,20 +65,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.name
-          - name: PX_CONFIGPROPERTIES_QUERYMAXMEMORYPERNODE
-            value: 8GB
-          - name: PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE
-            value: 8GB
-          - name: PX_CONFIGPROPERTIES_QUERYMAXMEMORY
-            value: 50GB
-          - name: PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORY
-            value: 60GB
-          - name: PX_DELTAS3_PARTITIONPRUNINGENABLED
-            value: "true"
-          - name: PX_DELTAS3_FILTERPUSHDOWNENABLED
-            value: "true"
-          - name: PX_DELTAS3_PROJECTIONPUSHDOWNENABLED
-            value: "true"
         envFrom:
         - configMapRef:
             name: cm-px-clusterproperties

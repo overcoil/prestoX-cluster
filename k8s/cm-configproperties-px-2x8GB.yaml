@@ -1,9 +1,11 @@
 #
-# settings for a reasonable cluster with 8GB per node and capping out at 60GB for the entire query
-# This keeps Trino's partitioning pruning feature ON
+# Settings for a reasonable cluster with 8GB per node and capping out at 60GB for the entire query
+# This set keeps Trino's partitioning pruning feature ON
 #
 # Note the PX_DELTAS3_ settings will be use recognized by Trino, not PrestoDB
 # Only use/reference these in a Trino .properties file!
+#
+
 kind: ConfigMap
 apiVersion: v1
 kind: ConfigMap
