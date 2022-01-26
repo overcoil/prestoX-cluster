@@ -52,13 +52,13 @@ spec:
         ports:
         - containerPort: 8081
           name: access
-        resources:
-          requests:
-            memory: "8G"
-            cpu: "2000m"
-          limits:
-            memory: "8G"
-            cpu: "2000m"
+        # resources:
+        #   requests:
+        #     memory: "8G"
+        #     cpu: "2000m"
+        #   limits:
+        #     memory: "8G"
+        #     cpu: "2000m"
         env:
           - name: cluster.name
             value: k8s-logs

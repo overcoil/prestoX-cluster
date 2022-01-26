@@ -1,9 +1,13 @@
 #
-# Settings for a reasonable cluster with 8GB per node and capping out at 60GB for the entire query
+# Settings cribbed from _Trino: The Definitive Guide_, chapter 12
+#
 # This set keeps Trino's partitioning pruning feature ON
 #
 # Note the PX_DELTAS3_ settings will be use recognized by Trino, not PrestoDB
 # Only use/reference these in a Trino .properties file!
+#
+# CONFIGPROPERTIES values use the unit GB
+# JVMCONFIG values use the unit G
 #
 
 kind: ConfigMap
@@ -12,12 +16,13 @@ kind: ConfigMap
 metadata:
   name: cm-px-clusterproperties
 data:
-  PX_CONFIGPROPERTIES_QUERYMAXMEMORYPERNODE: 8GB
-  PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE: 8GB
+  PX_CONFIGPROPERTIES_QUERYMAXMEMORYPERNODE: 13GB
+  PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE: 16GB
   PX_CONFIGPROPERTIES_QUERYMAXMEMORY: 50GB
   PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORY: 60GB
-  PX_JVMCONFIG_COORDINATORMAXHEAPSIZE: 24G
-  PX_JVMCONFIG_WORKERMAXHEAPSIZE: 24G
+  PX_CONFIGPROPERTIES_MEMORYHEAPHEADROOMPERNODE: 9GB
+  PX_JVMCONFIG_COORDINATORMAXHEAPSIZE: 38G
+  PX_JVMCONFIG_WORKERMAXHEAPSIZE: 38G
   TRINO_DELTAS3_PARTITIONPRUNINGENABLED: "true"
   TRINO_DELTAS3_FILTERPUSHDOWNENABLED: "true"
   TRINO_DELTAS3_PROJECTIONPUSHDOWNENABLED: "true"

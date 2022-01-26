@@ -1,0 +1,6 @@
+[template]
+src = "jvm.config.tmpl"
+dest = "/usr/local/px/etc/jvm.config"
+keys = [
+    "/px/jvmconfig/workermaxheapsize"
+]

@@ -21,7 +21,7 @@ fi
 cat q/ex.sql q/${qbase}.sql > q/${qbase}-ex.sql
 cat q/ex.sql q/an.sql q/${qbase}.sql > q/${qbase}-ex-an.sql
 
-#${KC} exec coordinator-0 -it -- px-cli < q/${qbase}.sql       > q/${qbase}.out
+${KC} exec coordinator-0 -it -- px-cli < q/${qbase}.sql       > q/${qbase}.out
 
 ${KC} exec coordinator-0 -it -- px-cli < q/${qbase}-ex.sql    > q/${qbase}-ex.out
 

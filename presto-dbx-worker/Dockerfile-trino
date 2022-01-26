@@ -6,6 +6,10 @@ LABEL maintainer="overcoil"
 
 COPY etc /usr/local/px/etc
 COPY px-etc-catalog-delta.properties /usr/local/px/etc/catalog/delta.properties
+
+COPY px-etc-jvm.config.toml /etc/confd/conf.d/jvm.config.toml 
+COPY px-etc-jvm.config.tmpl /etc/confd/templates/jvm.config.tmpl
+
 EXPOSE 8081
 
 WORKDIR /usr/local/px

@@ -14,15 +14,16 @@ NS1=trino
 NS2=prestodb
 NS=$(NS1)
 
-# GP: m4.2xlarge: 8 vCPU/32 Gi RAM; USD0.40/h
+# GP: m4.2xlarge:  8 vCPU/32 Gi RAM; USD0.40/h
+# GP: m4.4xlarge: 16 vCPU/64 Gi RAM; USD0.80/h
 NODES=2
-NTYPE=m4.2xlarge
+NTYPE=m4.4xlarge
 NGROUP=worker-nodes
 MIN_NODES=2
 MAX_NODES=5
 
 # add --profile yourprofile if required
-AWS=aws --profile eks.min
+AWS=aws --profile default
 
 #EC=AWS_PROFILE=eks.min eksctl
 EC=eksctl 
@@ -73,6 +74,7 @@ eksdown:
 
 eksdescribe:
 	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
+	$(AWS) describe-instances --output json
 
 # incomplete command line for scaling the EKS cluster
 kscale:
@@ -121,22 +123,26 @@ gop:
 	ln -s prestodb-coordinator.yaml _coordinator.yaml
 	ln -s prestoDB-workers.yaml _workers.yaml
 
-awscred:
-	$(KC) apply -f secret-awscred.yaml
+awscred: _awscred.yaml
+	ls -l _awscred.yaml
+	$(KC) apply -f _awscred.yaml
 
-configproperties:
-	$(KC) apply -f cm-configproperties.yaml
+config: _config.yaml
+	ls -l _config.yaml
+	$(KC) apply -f _config.yaml
 
-start:
+start: _coordinator.yaml _workers.yaml
+	ls -l _coordinator.yaml _workers.yaml
 	$(KC) apply -f _coordinator.yaml -f _workers.yaml
 
 pf:
 	$(KC) port-forward coordinator-0 8080:8080
 
-stop:
+stop: _coordinator.yaml _workers.yaml
+	ls -l _coordinator.yaml _workers.yaml
 	$(KC) delete -f _coordinator.yaml -f _workers.yaml
 
-bounce:
+bounce: _workers.yaml
 	$(KC) rollout restart statefulset/coordinator statefulset/worker
 
 statust:

@@ -10,7 +10,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: PX-trino-eks-benchmark
+  name: px-benchmark
   region: us-west-2
 
 vpc:
@@ -23,7 +23,7 @@ vpc:
 nodeGroups:
   - name: worker
     labels: { role: workers }
-    instanceType: m4.2xlarge
+    instanceType: m4.4xlarge
     desiredCapacity: 2 
     privateNetworking: false
 

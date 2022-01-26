@@ -1,5 +1,6 @@
 -server
--Xmx16G
+-Xms{{getv "/px/jvmconfig/workermaxheapsize"}}
+-Xmx{{getv "/px/jvmconfig/workermaxheapsize"}}
 -XX:+UseG1GC
 -XX:G1HeapRegionSize=32M
 -XX:+UseGCOverheadLimit

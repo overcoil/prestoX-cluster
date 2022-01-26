@@ -128,4 +128,5 @@ override.tf.json
 pcli
 tcli
 awscred.env
+.ipynb_checkpoints
 

@@ -6,4 +6,5 @@ keys = [
     "/px/configproperties/querymaxtotalmemorypernode",
     "/px/configproperties/querymaxmemory",
     "/px/configproperties/querymaxtotalmemory",
+    "/px/configproperties/memoryheapheadroompernode",
 ]
