@@ -1,0 +1,92 @@
+#
+# For local build 0.266-SNAPSHOT
+#
+# k8s yaml for PrestoDB workers:
+#   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each PrestoDB node (pod)
+#   1 Service - a headless service for the worker pool 
+#   1 Service Account - access control
+#
+# The secret is passed in to configure deltas3.properties dynamically for reading S3 Delta tables
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  labels:
+    app: prestodb
+    version: v0266
+spec:
+  selector:
+    app: prestodb
+    version: v0266
+  clusterIP: None
+  ports:
+  - port: 8081
+    name: web
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: svc-worker
+  labels:
+    account: SVC_W
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: prestodb
+      version: v0266
+  serviceName: worker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prestodb
+        version: v0266
+        role: px-work
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - px-work
+      containers:
+      - name: worker
+        image: docker.io/overcoil/presto-dbx-worker:0.266-SNAPSHOT
+        ports:
+        - containerPort: 8081
+          name: access
+        resources:
+          requests:
+        # set CPU to >50% of a node's capacity to push the scheduler to schedule each worker to a distinct node
+            cpu: "9000m"
+        #     memory: "16G"
+          limits:
+            cpu: "9000m"
+        #     memory: "16G"
+        env:
+          - name: cluster.name
+            value: k8s-logs
+          - name: node.name
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: cm-px-clusterproperties
+        - secretRef:
+            name: secret-awscred
+        command: ["./scripts/px-prep.sh"]
+        args: ["http://coordinator-0.coordinator.prestodb.svc.cluster.local:8080", $(node.name)]
+        imagePullPolicy: Always
+      dnsConfig:
+        searches:
+          - worker.prestodb.svc.cluster.local

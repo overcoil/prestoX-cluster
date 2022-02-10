@@ -1,7 +1,8 @@
 ARG VERSION
 ARG DOCKERHUB_ID
+ARG MUTATION
 
-FROM ${DOCKERHUB_ID}/trino-base:${VERSION}
+FROM ${DOCKERHUB_ID}/trino-base:${VERSION}${MUTATION}
 LABEL maintainer="overcoil"
 
 COPY etc /usr/local/px/etc

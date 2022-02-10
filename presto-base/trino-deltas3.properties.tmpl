@@ -34,11 +34,7 @@ hive.s3.aws-secret-key={{getv "/px/deltas3/awssecretkeyid"}}
 
 # Delta connector settings; see presto-delta/src/main/java/io/prestosql/delta/DeltaConfig.java
 # These are only applicable for use with the dynamic partition pruning feature
-delta.partition-pruning-enabled={{getv "/trino/deltas3/partitionpruningenabled"}}
-delta.filter-pushdown-enabled={{getv "/trino/deltas3/filterpushdownenabled"}}
-delta.projection-pushdown-enabled={{getv "/trino/deltas3/projectionpushdownenabled"}}
-#delta.max-splits-batch-size=
-
+delta.max-splits-batch-size={{getv "/px/deltas3/maxsplitsbatchsize"}}
 
 # Fail-fast in development
 #hive.metastore.thrift.client.max-retry-time=1s

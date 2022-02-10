@@ -1,16 +1,13 @@
 #
 # Settings cribbed from _Trino: The Definitive Guide_, chapter 12
 #
-# This set keeps Trino's partitioning pruning feature ON
+# Only use/reference implemented properties. Superfluous properties will be detected and prevent node startup.
 #
-# Note the PX_DELTAS3_ settings will be use recognized by Trino, not PrestoDB
-# Only use/reference these in a Trino .properties file!
-#
-# CONFIGPROPERTIES values use the unit GB
-# JVMCONFIG values use the unit G
+# Important:
+#   CONFIGPROPERTIES values use the unit GB
+#   JVMCONFIG values use the unit G
 #
 
-kind: ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,6 +20,4 @@ data:
   PX_CONFIGPROPERTIES_MEMORYHEAPHEADROOMPERNODE: 9GB
   PX_JVMCONFIG_COORDINATORMAXHEAPSIZE: 38G
   PX_JVMCONFIG_WORKERMAXHEAPSIZE: 38G
-  TRINO_DELTAS3_PARTITIONPRUNINGENABLED: "true"
-  TRINO_DELTAS3_FILTERPUSHDOWNENABLED: "true"
-  TRINO_DELTAS3_PROJECTIONPUSHDOWNENABLED: "true"
+  PX_DELTAS3_MAXSPLITSBATCHSIZE: "200"

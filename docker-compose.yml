@@ -8,7 +8,8 @@ services:
     container_name: "coordinator"
     command: http://coordinator:8080 coordinator
     env_file:
-      - awscred.env
+      - _awscred.env
+      - _configproperties.env
     deploy:
       resources:
         limits:
@@ -20,7 +21,8 @@ services:
       - "8081:8081"
     command: http://coordinator:8080 worker0
     env_file:
-      - awscred.env
+      - _awscred.env
+      - _configproperties.env
     deploy:
       resources:
         limits:
@@ -32,7 +34,8 @@ services:
       - "8082:8081"
     command: http://coordinator:8080 worker1
     env_file:
-      - awscred.env
+      - _awscred.env
+      - _configproperties.env
     deploy:
       resources:
         limits:

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# assumption: run this from the top-level k8s directory
+
+VERSION=ZZ
+
+tools/copy-query-log.sh xyz r/${VERSION}/query4-1-1w.json
+tools/copy-query-log.sh xyz r/${VERSION}/query4-10-1w.json
+tools/copy-query-log.sh xyz r/${VERSION}/query4-1-10w.json
+tools/copy-query-log.sh xyz r/${VERSION}/query4-10-10w.json
+tools/copy-query-log.sh xyz r/${VERSION}/query4-1w.json
+

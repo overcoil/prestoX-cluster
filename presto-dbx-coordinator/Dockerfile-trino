@@ -1,7 +1,8 @@
 ARG VERSION
 ARG DOCKERHUB_ID
+ARG MUTATION
 
-FROM ${DOCKERHUB_ID}/trino-base:${VERSION}
+FROM ${DOCKERHUB_ID}/trino-base:${VERSION}${MUTATION}
 
 # TODO: I couldn't get ARG/ENV to work properly to externalize/parameterize PRESTVAR 
 

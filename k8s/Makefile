@@ -3,37 +3,79 @@
 #
 # NB: "px" refers to the Presto in the communal sense of either forks: "PrestoDB" or "Trino"
 #
-# Override this as required;
-# If one is using AWS/EKS, refer to the optional cluster-eks.yaml as required.
+# This Makefile uses the convention operating on underscored yaml as the desired settings.
+# This makes it convenient to use sym-links to switch between available choices:
+#
+#   _eks-cluster.yaml/$EKSYAML : spec for your EKS cluster
+#      example: eks/eks-cluster-2xm4.4xlarge.yaml
+#
+#   _config.yaml: configuration for Presto including JVM heap, node/query memory usage
+#      example: cm/cm-configproperties-px-50GB.yaml
+#
+#   _awscred.yaml AWS credential for the packed-in deltas3 catalog
+#      points to valid credentials (see secret-awscred.yaml-tpl for names)
+#
+#   _coordinator.yaml: your cluster coordinator (in a statefulset)
+#      example: px-manifests/presto-coordinator.yaml or trino-coordinator.yaml
+#   _workers.yaml: your cluster workers (in a statefulset)
+#      example: px-manifests/presto-workers.yaml or trino-workers.yaml
 #
 
-REGION=us-west-2
-CLUSTER_NAME=px-benchmark
+# ----------
+# Kubernetes
+# ----------
 K8S_CTX=px
 NS1=trino
 NS2=prestodb
+
+# this Makefile relies on the default namespace to be set (externally)
+# $(NS) is only used only for istio
 NS=$(NS1)
-
-# GP: m4.2xlarge:  8 vCPU/32 Gi RAM; USD0.40/h
-# GP: m4.4xlarge: 16 vCPU/64 Gi RAM; USD0.80/h
-NODES=2
-NTYPE=m4.4xlarge
-NGROUP=worker-nodes
-MIN_NODES=2
-MAX_NODES=5
-
-# add --profile yourprofile if required
-AWS=aws --profile default
-
-#EC=AWS_PROFILE=eks.min eksctl
-EC=eksctl 
 
 KC=kubectl
 IC=istioctl
 ISTIO_NS=istio-system
 
-# ref: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
-KVER=1.21
+# Minikube and EKS differ in the patch version supported; adjust as required
+KVER=1.21.0
+# AWS ref: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
+
+
+# --------------------------------
+# Kubernetes-platform-specific settings
+# --------------------------------
+
+# use this to test config values
+#DRY_RUN=--dry-run
+DRY_RUN=
+
+PROFILE=default
+REGION=us-west-2
+
+AWS=aws --profile $(PROFILE) --region $(REGION) $(DRY_RUN)
+EC=AWS_PROFILE=$(PROFILE) eksctl --region $(REGION) $(DRY_RUN)
+ECF=AWS_PROFILE=$(PROFILE) eksctl $(DRY_RUN)
+
+# AWS/EKS var1:
+CLUSTER_NAME=px-benchmark
+
+# GP: m4.2xlarge:  8 vCPU/32 Gi RAM; USD0.40/h
+# GP: m4.4xlarge: 16 vCPU/64 Gi RAM; USD0.80/h
+NG_NAME=managed-ng-worker
+NG_LARGE=--node-type m4.4xlarge --nodes 11 --nodes-min 2 --nodes-max 11 --managed 
+NG_SMALL=--node-type m4.4xlarge --nodes 2 --nodes-min 2 --nodes-max 5 --managed 
+NG_SPEC=$(NG_LARGE)
+
+# 
+TAG_SPEC=
+
+# AWS/EKS var2:
+EKSYAML=_eks-cluster.yaml
+
+
+
+# ----------------------------
+
 
 .phony=mk ns1 ns2 def1 def2 go1 go2 \
 	awscred configproperties eksup eksdown dryrun eksdescribe kscale vpcs subnets \
@@ -48,53 +90,57 @@ KVER=1.21
 # =====================================================
 
 # AWS EKS for primary; the rename-context relies on eksctl setting the newly created context/cluster to the current 
-eksup:
+eksup: $(EKSYAML)
 # var 1: 
-#	$(EC) create cluster --version $(KVER) \
-#		--region $(REGION) --name $(CLUSTER_NAME) \
-#		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+#	$(EC) --region $(REGION) $(DRY_RUN) create cluster \
+#		--version $(KVER) --name $(CLUSTER_NAME) \
+#       --nodegroup-name $(NG_NAME) $(NG_SPEC) \
+#		$(TAG_SPEC)
 
-# var 2: use cluster-eks.yaml to specify all parameters
-	$(EC) create cluster -f cluster-eks.yaml  
+# var 2: use a yaml to specify all parameters; take care to
+#        stay in sync with $(CLUSTER_NAME) here!!
+	ls -l $(EKSYAML)
+	$(ECF) create cluster -f $(EKSYAML)
 	# do a version check cuz the -f option above has option to specify KVER
 	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json | jq -r '.cluster.version'
 
     # Use back-ticks for subshell because $(...) notation is used by make
 	$(KC) config rename-context `$(KC) config current-context` $(K8S_CTX) 
 
-dryrun:
-	$(EC) create cluster --dry-run \
-		--region $(REGION) --version $(KVER) --name $(CLUSTER_NAME) \
-		--nodegroup-name $(NGROUP) --node-type $(NTYPE) --nodes $(NODES) --nodes-min $(MIN_NODES) --nodes-max $(MAX_NODES) --managed 
+# use update-kubeconfig if your ~/.kube/config is in the wrong state
+ekssync:
+	$(AWS) eks update-kubeconfig --name $(CLUSTER_NAME) --alias $(K8S_CTX)
 
 # you can also delete just the nodegroup
 eksdown:
-	$(EC) delete cluster --name $(CLUSTER_NAME) --region $(REGION)
-	$(KC) config delete-context $(K8S_CTX) 
+	$(EC) delete cluster --name $(CLUSTER_NAME)
+
+# re-install these
+up:
+	$(EC) create nodegroup --cluster $(CLUSTER_NAME) \
+		--name $(NG_NAME) $(NG_SPEC)
+
+# re-install these
+down:
+	$(EC) delete nodegroup --cluster $(CLUSTER_NAME) --name $(NG_NAME) 
 
 eksdescribe:
 	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
 	$(AWS) describe-instances --output json
 
-# incomplete command line for scaling the EKS cluster
+# managed-ng2/managed-ngw is the node group that hosts Presto workers
 kscale:
-	$(EC) scale nodegroup --cluster trino2-eks-benchmark -n worker --nodes $(NODE) -
+	$(EC) scale nodegroup --cluster $(CLUSTER_NAME) --nodes 10 managed-ngw
 
-# review your vpcs
-vpcs:
-	$(AWS) --region $(REGION) ec2 describe-vpcs --output json | jq -r '.Vpcs[]| .VpcId + " " + .CidrBlock + " " + (.IsDefault|tostring)'
-
-# review subnets in your vpcs
-subnets:
-	$(AWS) --region $(REGION) ec2 describe-subnets --output json | jq -r '.Subnets[]| .SubnetId + " " + .VpcId + " " + .AvailabilityZone + " " + .CidrBlock'
-
+kshrink:
+	$(EC) scale nodegroup --cluster $(CLUSTER_NAME) --nodes 1 managed-ngw
 
 # =====================================================
 
 
 # optional for local test/dev
 mk:
-	minikube start --memory 8192 --cpus 4
+	minikube start --kubernetes-version=$(KVER) --memory 8192 --cpus 4
 	
 
 # =====================================================
@@ -117,11 +163,13 @@ got:
 	rm -f _coordinator.yaml _workers.yaml
 	ln -s trino-coordinator.yaml _coordinator.yaml
 	ln -s trino-workers.yaml _workers.yaml
-	
+	ls -l trino-[cw]*.yaml
+
 gop:
 	rm -f _coordinator.yaml _workers.yaml
 	ln -s prestodb-coordinator.yaml _coordinator.yaml
-	ln -s prestoDB-workers.yaml _workers.yaml
+	ln -s prestodb-workers.yaml _workers.yaml
+	ls -l prestodb-[cw]*.yaml
 
 awscred: _awscred.yaml
 	ls -l _awscred.yaml
@@ -135,8 +183,9 @@ start: _coordinator.yaml _workers.yaml
 	ls -l _coordinator.yaml _workers.yaml
 	$(KC) apply -f _coordinator.yaml -f _workers.yaml
 
+# the script waits for the coordinator to be ready before starting the port-forward
 pf:
-	$(KC) port-forward coordinator-0 8080:8080
+	tools/pf.sh
 
 stop: _coordinator.yaml _workers.yaml
 	ls -l _coordinator.yaml _workers.yaml
@@ -147,7 +196,11 @@ bounce: _workers.yaml
 
 statust:
 	$(KC) config get-contexts
-		
+
+# use this to examine how pods are scheduled across the nodes of the cluster
+spread:
+	$(KC) describe pod | grep Node: | sort
+
 # the gw & vs resources are optional
 ls:
 #	minikube status
@@ -165,6 +218,14 @@ nodecheck:
 sanity:
 	$(KC) exec coordinator-0 -it -- px-cli < q/tpcds-sanity.sql
 
+tversioncheck:
+	$(KC) exec coordinator-0 -it -- ls -l /usr/local/px/plugin/delta/trino-delta-359.jar
+	$(KC) exec worker-0 -it -- ls -l /usr/local/px/plugin/delta/trino-delta-359.jar
+
+pversioncheck:
+	$(KC) exec coordinator-0 -it -- ls -l /usr/local/px/plugin/delta/presto-delta-0.269-SNAPSHOT.jar
+	$(KC) exec worker-0 -it -- ls -l /usr/local/px/plugin/delta/presto-delta-0.269-SNAPSHOT.jar
+
 clean:
 	$(KC) delete secret,gw,vs --all
 
@@ -177,17 +238,11 @@ bashw0:
 bashw1:
 	$(KC) exec worker-1 -it -- bash
 
-shrink:
-	$(KC) scale --replicas=2 statefulset/worker
+pshrink:
+	$(KC) scale --replicas=1 statefulset/worker
 
-scale3:
-	$(KC) scale --replicas=3 statefulset/worker
-
-scale10:
+pscale:
 	$(KC) scale --replicas=10 statefulset/worker
-
-scale20:
-	$(KC) scale --replicas=20 statefulset/worker
 
 
 q96:

@@ -1,5 +1,7 @@
 *.out
 _*.yaml
-cm-configproperties.yaml
+_*.env
 secret-awscred.yaml
+r
+{trino,prestodb}-{coordinator,workers}.yaml
 

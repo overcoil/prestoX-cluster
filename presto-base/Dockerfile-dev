@@ -21,7 +21,9 @@ ARG VERSION
 #
 ARG PKG_REPO_SUBPATH
 ARG PRESTVAR
+ARG MUTATION
 
+ENV PX_MUTATION="${MUTATION}"
 ENV PRESTO_VERSION="${VERSION}"
 ENV PRESTO_HOME=/usr/local/"${PRESTVAR}"
 # PX_HOME is a fork-invariant path to reduce the muliplication of options 
@@ -30,8 +32,8 @@ ENV PX_HOME=/usr/local/px
 
 # install dev tools
 # added dnsutils for nslookup and the iputils variant of ping
-RUN apt-get update
-RUN apt-get install -y \
+
+RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     dnsutils \
@@ -57,7 +59,6 @@ RUN wget https://github.com/kelseyhightower/confd/releases/download/v0.16.0/conf
     && chmod +x /opt/confd/bin/confd
 
 # "deltas3" is a stock catalog configured (via k8s secret/env or Docker .env) for use with $path  
-# only the Trino version support DPP at present
 COPY ${PRESTVAR}-deltas3.properties.toml /etc/confd/conf.d/deltas3.properties.toml
 COPY ${PRESTVAR}-deltas3.properties.tmpl /etc/confd/templates/deltas3.properties.tmpl 
 
@@ -65,7 +66,7 @@ COPY ${PRESTVAR}-deltas3.properties.tmpl /etc/confd/templates/deltas3.properties
 COPY px-config.properties-fragment.toml /etc/confd/conf.d/config.properties-fragment.toml 
 COPY px-config.properties-fragment.tmpl /etc/confd/templates/config.properties-fragment.tmpl
 
-# NB: config.properties.template must fold in config.properties-fragment by derived images; see presto/trino.sh
+# NB: the derived images (e.g., trino-dbx-worker) must add this config.properties-fragment into their config.properties.template; see presto/trino.sh
 
 RUN apt-get install -y  python-is-python3   
 
@@ -77,14 +78,14 @@ ENV PATH $PATH:$JAVA_HOME/bin:/opt/confd/bin
 WORKDIR /usr/local/bin
 
 # pack in the CLI for convenience
-ADD ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin
-RUN chmod +x ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar
+ADD px-bin/${PRESTVAR}-cli-${PRESTO_VERSION}${PX_MUTATION}-executable.jar /usr/local/bin
+RUN chmod +x ${PRESTVAR}-cli-${PRESTO_VERSION}${PX_MUTATION}-executable.jar
 
 # make the CLI available with a fork/version-invariant name
-RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}-executable.jar px-cli
+RUN mv ${PRESTVAR}-cli-${PRESTO_VERSION}${PX_MUTATION}-executable.jar px-cli
 
 WORKDIR /usr/local
-ADD ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz /usr/local
+ADD px-bin/${PRESTVAR}-server-${PRESTO_VERSION}${PX_MUTATION}.tar.gz /usr/local
 #RUN tar xvzf ${PRESTVAR}-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
 RUN ln -s /usr/local/${PRESTVAR}-server-${PRESTO_VERSION} $PRESTO_HOME
 RUN ln -s /usr/local/${PRESTVAR}-server-${PRESTO_VERSION} $PX_HOME

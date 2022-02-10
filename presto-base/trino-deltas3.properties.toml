@@ -4,7 +4,5 @@ dest = "/usr/local/px/etc/catalog/deltas3.properties"
 keys = [
     "/px/deltas3/awsaccesskeyid",
     "/px/deltas3/awssecretkeyid",
-    "/trino/deltas3/partitionpruningenabled",
-    "/trino/deltas3/filterpushdownenabled",
-    "/trino/deltas3/projectionpushdownenabled"
+    "/px/deltas3/maxsplitsbatchsize",
 ]
