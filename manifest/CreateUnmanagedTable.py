@@ -53,30 +53,34 @@ def main():
     delta_file_name = "uszips_delta_unmanaged"
 
     # write data out in Delta format
-    df.write.format("delta").mode("overwrite").save('./delta/%s' % delta_file_name)
+    df.write.format("delta").mode("overwrite").save("./delta/%s" % delta_file_name)
+
+    print("df.write.format succeeded")
 
     # CMD 4:
     # adapted from using the %sql magic command to call spark.sql() instead
     #
 
-    spark.sql('''
-        DROP TABLE IF EXISTS uszips_delta_unmanaged 
-    ''')
+    #spark.sql('''
+    #    DROP TABLE IF EXISTS uszips
+    #''')
     
     # CMD 5:
     # adapted from using the %sql magic command to call spark.sql() instead
     #
 
     spark.sql('''
-        CREATE TABLE uszips_delta_unmanaged USING DELTA LOCATION './delta/uszips_delta/' 
+        CREATE TABLE default.uszips USING DELTA LOCATION '/home/ec2-user/dev/overcoil/prestoX-cluster/manifest/delta/uszips_delta_unmanaged';
     ''')
 
-    # CMD 5:
+    print("CREATE TABLE ... USING DELTA LOCATION succeeded")
+
+    # CMD 6:
     # adapted from using the %sql magic command to call spark.sql() instead
     #
 
     spark.sql('''
-        GENERATE symlink_format_manifest FOR TABLE uszips_delta_unmanaged 
+        GENERATE symlink_format_manifest FOR TABLE default.uszips
     ''')
 
 
