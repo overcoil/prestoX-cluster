@@ -55,32 +55,21 @@ def main():
     # write data out in Delta format
     df.write.format("delta").mode("overwrite").save("./delta/%s" % delta_file_name)
 
-    print("df.write.format succeeded")
 
-    # CMD 4:
-    # adapted from using the %sql magic command to call spark.sql() instead
-    #
-
-    #spark.sql('''
-    #    DROP TABLE IF EXISTS uszips
-    #''')
-    
-    # CMD 5:
-    # adapted from using the %sql magic command to call spark.sql() instead
-    #
-
+    # now create the Delta table (inside the metastore?)
+    # NB: the location must be absolute!
     spark.sql('''
-        CREATE TABLE default.uszips USING DELTA LOCATION '/home/ec2-user/dev/overcoil/prestoX-cluster/manifest/delta/uszips_delta_unmanaged';
+        CREATE TABLE default.uszips 
+        USING DELTA 
+        LOCATION '/home/ec2-user/dev/overcoil/prestoX-cluster/manifest/delta/uszips_delta_unmanaged';
     ''')
 
-    print("CREATE TABLE ... USING DELTA LOCATION succeeded")
-
-    # CMD 6:
-    # adapted from using the %sql magic command to call spark.sql() instead
-    #
-
+    # generate the manifest; 
+    # NB: if you try to use a path after "FOR TABLE", the path must be delimited for the back-tick, not the single-quote!
+    #     it's rather subtle in the docs too: https://docs.databricks.com/delta/presto-integration.html
     spark.sql('''
-        GENERATE symlink_format_manifest FOR TABLE default.uszips
+        GENERATE symlink_format_manifest 
+        FOR TABLE default.uszips
     ''')
 
 
