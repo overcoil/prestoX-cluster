@@ -1,18 +1,9 @@
-# import sys
-# assert sys.version_info >= (3, 5) # make sure we have Python 3.5+
-
-# from pyspark.sql import SparkSession, functions, types
-# spark = SparkSession.builder.appName('CreateUnmanagedTable').getOrCreate()
-# assert spark.version >= '2.3' # make sure we have Spark 2.3+
-
-# from delta import *
-
 
 # header as described from: https://docs.delta.io/latest/quick-start.html
 import pyspark
 from delta import *
 
-builder = pyspark.sql.SparkSession.builder.appName("MyApp") \
+builder = pyspark.sql.SparkSession.builder.appName("CreateUnmanagedTable_WithAdditions") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
 
@@ -24,11 +15,17 @@ spark = configure_spark_with_delta_pip(builder).getOrCreate()
 # This is a standalone program suitable for Pyspark (as opposed to the .dbc) which
 #   runs on a cluster (either Databricks Cloud or local/standalone)
 #
+# Dependency:
+#   1. The uszips.csv sample dataset from the tutorial. (Also available from https://simplemaps.com/data/us-zips)
+#
+# Outline:
+#   1. Create the CSV and write it out into Delta format
+#   2. Create an unmanaged Delta table with the file output
+#   3. Generate a manifest for this table
+#
 
 def main():
     
-    # CMD 2:
-
     # File location and type
     file_location = "./uszips.csv"
     file_type = "csv"
@@ -46,9 +43,6 @@ def main():
       .option("escape", "\"") \
       .load(file_location)
 
-    print(df)
-
-    # CMD 3:
 
     delta_file_name = "uszips_delta_unmanaged"
 
