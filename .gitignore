@@ -130,3 +130,10 @@ tcli
 awscred.env
 .ipynb_checkpoints
 
+_*.env
+
+deltas3hms.properties
+deltas3g.properties
+deltas3.properties
+docker-compose.yml
+

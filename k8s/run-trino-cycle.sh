@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=trial-359g-f
+VERSION=trial-373
 WORKERS=10
 
 mkdir -p r/${VERSION}

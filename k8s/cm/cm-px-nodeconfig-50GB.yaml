@@ -1,0 +1,29 @@
+#
+# Core config.properties and jvm.config settings.
+#   /usr/local/px/etc/config.properties
+#   /usr/local/px/etc/jvm.config
+#
+# Only use/reference implemented properties. Superfluous properties will be detected and prevent node startup.
+#
+# Important:
+#   CONFIGPROPERTIES values use the unit GB
+#   JVMCONFIG values use the unit G
+#
+# Version-dependency:
+#   - Trino 369 deprecated query.max-total-memory-per-node. Thus the feeder variable
+#     PRESTODB_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE has a PRESTODB prefix. The
+#     PX prefix for the rest indicates the remainder are useable across all variants.
+#
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-px-nodeconfig
+data:
+  PRESTODB_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE: 16GB
+  PX_CONFIGPROPERTIES_QUERYMAXMEMORYPERNODE: 13GB
+  PX_CONFIGPROPERTIES_QUERYMAXMEMORY: 50GB
+  PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORY: 60GB
+  PX_CONFIGPROPERTIES_MEMORYHEAPHEADROOMPERNODE: 9GB
+  PX_JVMCONFIG_COORDINATORMAXHEAPSIZE: 38G
+  PX_JVMCONFIG_WORKERMAXHEAPSIZE: 38G

@@ -3,5 +3,9 @@ _*.yaml
 _*.env
 secret-awscred.yaml
 r
-{trino,prestodb}-{coordinator,workers}.yaml
+trino-coordinator.yaml
+trino-workers.yaml
+prestodb-coordinator.yaml
+prestodb-workers.yaml
+q
 

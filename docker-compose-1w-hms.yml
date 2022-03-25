@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+  coordinator:
+    image: "${DOCKERHUB_ID}/${PRESTVAR}-dbx-coordinator:${PRESTO_VERSION}"
+    ports:
+      - "8080:8080"
+    container_name: "coordinator"
+    volumes:
+      - "./deltas3hms.properties:/usr/local/${PRESTVAR}-server-${PRESTO_VERSION}/etc/catalog/deltas3hms.properties"
+    command: http://coordinator:8080 coordinator
+    env_file:
+      - _configproperties.env
+      - _awscred.env
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+  worker0:
+    image: "${DOCKERHUB_ID}/${PRESTVAR}-dbx-worker:${PRESTO_VERSION}"
+    container_name: "worker0"
+    volumes:
+      - "./deltas3hms.properties:/usr/local/${PRESTVAR}-server-${PRESTO_VERSION}/etc/catalog/deltas3hms.properties"
+    ports:
+      - "8081:8081"
+    command: http://coordinator:8080 worker0
+    env_file:
+      - _configproperties.env
+      - _awscred.env
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+  mariadb:
+    image: 'mariadb:latest'
+    hostname: mariadb
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_DATABASE: metastore_db
+
+  hive-metastore:
+    image: 'bitsondatadev/hive-metastore:latest'
+    hostname: hive-metastore
+    ports:
+      - '9083:9083' # Metastore Thrift
+    volumes:
+      - ./metastore-site.xml:/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml:ro
+    environment:
+      METASTORE_DB_HOSTNAME: mariadb
+    # env_file:
+    #   - hack-awscred.env 
+    depends_on:
+      - mariadb
+
+

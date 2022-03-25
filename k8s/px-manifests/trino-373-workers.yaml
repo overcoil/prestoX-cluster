@@ -1,4 +1,6 @@
 #
+# For build 373 & onward (373 as the initial OSS release of Starburst's Delta connector)
+#
 # k8s yaml for Trino workers:
 #   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each Trino node (pod)
 #   1 Service - a headless service for the worker pool 
@@ -12,11 +14,11 @@ metadata:
   name: worker
   labels:
     app: trino
-    version: v359
+    version: v373
 spec:
   selector:
     app: trino
-    version: v359
+    version: v373
   clusterIP: None
   ports:
   - port: 8081
@@ -37,28 +39,39 @@ spec:
   selector:
     matchLabels:
       app: trino
-      version: v359
+      version: v373
   serviceName: worker
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
         app: trino
-        version: v359
+        version: v373
+        role: px-work
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - px-work
       containers:
       - name: worker
-        image: docker.io/overcoil/trino-dbx-worker:359
+        image: docker.io/overcoil/trino-dbx-worker:374
         ports:
         - containerPort: 8081
           name: access
         resources:
           requests:
-            memory: "8G"
-            cpu: "500m"
+        # set CPU to >50% of a node's capacity to push the scheduler to schedule each worker to a distinct node
+            cpu: "9000m"
+        #     memory: "16G"
           limits:
-            memory: "8G"
-            cpu: "1000m"
+            cpu: "9000m"
+        #     memory: "16G"
         env:
           - name: cluster.name
             value: k8s-logs
@@ -67,11 +80,19 @@ spec:
               fieldRef:
                 fieldPath: metadata.name
         envFrom:
-        - secretRef:
-            name: secret-awscred
-        command: ["./scripts/trino.sh"]
+        - configMapRef:
+            name: cm-px-nodeconfig
+        command: ["./scripts/px-prep.sh"]
         args: ["http://coordinator-0.coordinator.trino.svc.cluster.local:8080", $(node.name)]
         imagePullPolicy: Always
+        volumeMounts:
+        - name: deltas3g-file
+          mountPath: /usr/local/px/etc/catalog
+          readOnly: true
+      volumes:
+      - name: deltas3g-file
+        configMap:
+          name: cm-deltas3g.properties
       dnsConfig:
         searches:
           - worker.trino.svc.cluster.local

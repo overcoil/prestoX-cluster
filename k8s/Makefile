@@ -12,9 +12,6 @@
 #   _config.yaml: configuration for Presto including JVM heap, node/query memory usage
 #      example: cm/cm-configproperties-px-50GB.yaml
 #
-#   _awscred.yaml AWS credential for the packed-in deltas3 catalog
-#      points to valid credentials (see secret-awscred.yaml-tpl for names)
-#
 #   _coordinator.yaml: your cluster coordinator (in a statefulset)
 #      example: px-manifests/presto-coordinator.yaml or trino-coordinator.yaml
 #   _workers.yaml: your cluster workers (in a statefulset)
@@ -56,8 +53,10 @@ AWS=aws --profile $(PROFILE) --region $(REGION) $(DRY_RUN)
 EC=AWS_PROFILE=$(PROFILE) eksctl --region $(REGION) $(DRY_RUN)
 ECF=AWS_PROFILE=$(PROFILE) eksctl $(DRY_RUN)
 
-# AWS/EKS var1:
-CLUSTER_NAME=px-benchmark
+# name is used in both var1 and var2
+CLUSTER_NAME=trino-feature-eval
+
+# AWS/EKS var1: explicit values
 
 # GP: m4.2xlarge:  8 vCPU/32 Gi RAM; USD0.40/h
 # GP: m4.4xlarge: 16 vCPU/64 Gi RAM; USD0.80/h
@@ -66,17 +65,13 @@ NG_LARGE=--node-type m4.4xlarge --nodes 11 --nodes-min 2 --nodes-max 11 --manage
 NG_SMALL=--node-type m4.4xlarge --nodes 2 --nodes-min 2 --nodes-max 5 --managed 
 NG_SPEC=$(NG_LARGE)
 
-# 
 TAG_SPEC=
 
-# AWS/EKS var2:
+
+# AWS/EKS var2: values inlined into YAML
 EKSYAML=_eks-cluster.yaml
 
-
-
 # ----------------------------
-
-
 .phony=mk ns1 ns2 def1 def2 go1 go2 \
 	awscred configproperties eksup eksdown dryrun eksdescribe kscale vpcs subnets \
 	start stop pf bounce \
@@ -84,19 +79,17 @@ EKSYAML=_eks-cluster.yaml
 	istio label unlabel gw vs extern \
 	bashc bashw0 bashw1 \
 	shrink scale3 scale10 scale20 q96
-
-
-
 # =====================================================
 
 # AWS EKS for primary; the rename-context relies on eksctl setting the newly created context/cluster to the current 
-eksup: $(EKSYAML)
 # var 1: 
+#eksup:
 #	$(EC) --region $(REGION) $(DRY_RUN) create cluster \
 #		--version $(KVER) --name $(CLUSTER_NAME) \
 #       --nodegroup-name $(NG_NAME) $(NG_SPEC) \
 #		$(TAG_SPEC)
 
+eksup: $(EKSYAML)
 # var 2: use a yaml to specify all parameters; take care to
 #        stay in sync with $(CLUSTER_NAME) here!!
 	ls -l $(EKSYAML)
@@ -124,24 +117,12 @@ up:
 down:
 	$(EC) delete nodegroup --cluster $(CLUSTER_NAME) --name $(NG_NAME) 
 
-eksdescribe:
-	$(AWS) eks describe-cluster --name $(CLUSTER_NAME) --output json
-	$(AWS) describe-instances --output json
-
-# managed-ng2/managed-ngw is the node group that hosts Presto workers
+# managed-ng2/managed-ngw hosts Presto workers (note the w suffix)
 kscale:
 	$(EC) scale nodegroup --cluster $(CLUSTER_NAME) --nodes 10 managed-ngw
 
 kshrink:
 	$(EC) scale nodegroup --cluster $(CLUSTER_NAME) --nodes 1 managed-ngw
-
-# =====================================================
-
-
-# optional for local test/dev
-mk:
-	minikube start --kubernetes-version=$(KVER) --memory 8192 --cpus 4
-	
 
 # =====================================================
 
@@ -151,33 +132,39 @@ ns1:
 ns2:
 	$(KC) create ns $(NS2)
 
+# 1 is for Trino so show the versioni too
 def1:
 	$(KC) config set-context --current --namespace=$(NS1)
 	ls -l _coordinator.yaml _workers.yaml
+	ls -l trino-coordinator.yaml trino-workers.yaml
 
 def2:
 	$(KC) config set-context --current --namespace=$(NS2)
 	ls -l _coordinator.yaml _workers.yaml
 
 got:
-	rm -f _coordinator.yaml _workers.yaml
+	rm -f _coordinator.yaml _workers.yaml _config.yaml
 	ln -s trino-coordinator.yaml _coordinator.yaml
 	ln -s trino-workers.yaml _workers.yaml
-	ls -l trino-[cw]*.yaml
+	ln -s cm/cm-configproperties-trino-50GB.yaml _config.yaml
+	ls -l trino-[cw]*.yaml _config.yaml
 
 gop:
-	rm -f _coordinator.yaml _workers.yaml
+	rm -f _coordinator.yaml _workers.yaml _config.yaml
 	ln -s prestodb-coordinator.yaml _coordinator.yaml
 	ln -s prestodb-workers.yaml _workers.yaml
-	ls -l prestodb-[cw]*.yaml
+	ln -s cm/cm-configproperties-presto-50GB.yaml _config.yaml
+	ls -l prestodb-[cw]*.yaml _config.yaml
 
-awscred: _awscred.yaml
-	ls -l _awscred.yaml
-	$(KC) apply -f _awscred.yaml
+config: _nodeconfig.yaml  catalog
+	ls -l _nodeconfig.yaml 
+	$(KC) apply -f _nodeconfig.yaml 
 
-config: _config.yaml
-	ls -l _config.yaml
-	$(KC) apply -f _config.yaml
+# these may be mounted into each node of the cluster as required
+catalog: cm/deltas3g.properties cm/deltas3.properties
+	$(KC) delete configmap cm-deltas3g.properties cm-deltas3.properties --ignore-not-found
+	$(KC) create configmap cm-deltas3g.properties --from-file=cm/deltas3g.properties
+	$(KC) create configmap cm-deltas3.properties --from-file=cm/deltas3.properties
 
 start: _coordinator.yaml _workers.yaml
 	ls -l _coordinator.yaml _workers.yaml
@@ -194,9 +181,6 @@ stop: _coordinator.yaml _workers.yaml
 bounce: _workers.yaml
 	$(KC) rollout restart statefulset/coordinator statefulset/worker
 
-statust:
-	$(KC) config get-contexts
-
 # use this to examine how pods are scheduled across the nodes of the cluster
 spread:
 	$(KC) describe pod | grep Node: | sort
@@ -205,17 +189,17 @@ spread:
 ls:
 #	minikube status
 #	$(EC) get cluster --region $(REGION) -v 0
-	$(KC) get cm,secret,svc,deploy,statefulset,po
+	$(KC) get cm,svc,deploy,statefulset,po
 #	$(KC) get gw,vs
 
-# use the packed-in CLI inside the coordinator node
+# invoke the packed-in CLI inside the coordinator node
 cli:
 	$(KC) exec coordinator-0 -it -- px-cli
 
 nodecheck:
-	$(KC) exec coordinator-0 -it -- px-cli < q/node-check.sql
+	$(KC) exec coordinator-0 -it -- px-cli --execute "SELECT * FROM system.runtime.nodes;"
 
-sanity:
+psanity:
 	$(KC) exec coordinator-0 -it -- px-cli < q/tpcds-sanity.sql
 
 tversioncheck:
@@ -227,7 +211,7 @@ pversioncheck:
 	$(KC) exec worker-0 -it -- ls -l /usr/local/px/plugin/delta/presto-delta-0.269-SNAPSHOT.jar
 
 clean:
-	$(KC) delete secret,gw,vs --all
+	$(KC) delete cm --all
 
 bashc:
 	$(KC) exec coordinator-0 -it -- bash
@@ -248,33 +232,6 @@ pscale:
 q96:
 	$(KC) exec coordinator-0 -it -- trino-cli < tpcds-q96.sql
 
-# =====================================================
-# istio experiments
-label:
-	$(KC) label ns $(NS) istio-injection=enabled
-
-unlabel:
-	$(KC) label ns $(NS) istio-injection-
-
-# Install Istio
-istio:
-	$(IC) install -y --set profile=demo --set hub=gcr.io/istio-release 
-
-
-# =====================================================
-# gateway 
-gw:
-	$(KC) apply -f service-gateway.yaml
-
-vs:
-	$(KC) apply -f trino-cli-vs.yaml
-
-# get public access
-extern:
-	$(KC) -n $(ISTIO_NS) get svc istio-ingressgateway
-
-
-# =====================================================
 
 # for shell-level nslookup to test network names inside the cluster
 # resume using 'kubectl attach curl -c curl -i -t' command while the pod is running

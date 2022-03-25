@@ -1,0 +1,13 @@
+#
+# Settings appropriate for PrestoDB 0.269 & onward's OSS Delta connector
+#
+# These settings are exclusive to PrestoDB's Delta connector and
+#  distinct from Trino's Delta Lake connector.
+#
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-prestodb-deltaconnector-config
+data:
+  PRESTODB_DELTA_XYZ: FOO

@@ -1,3 +1,7 @@
+
+# specify the desired profile for the config to pick out your key pair & account id 
+AWS=aws --profile iamgc
+
 PRESTO_VERSION := 0.263
 
 # set to save typing for the p/t targets towards the end of this Makefile
@@ -6,23 +10,22 @@ PRESTO_VERSION := 0.263
 # Trino version:
 #   359g: private merge of Venki's 339-delta into Trino 359
 #   359: public rebase of 339-delta by Venki up to Trino 359
+#   373: first public release of Starburst's contributed Delta connector
 #
 # Mutant builds is one that is derived from a specific version; it is a mutant in the sense 
 # that the source version number is grossly inaccurate for the feature-set of the derivative. 
 # 359g is a good example in that it is a merge of Venki's 339-delta branch into Trino 359
-TRINO_VER:=359
-TRINO_MUTATION:=g
-#TRINO_VER:=359
+TRINO_VER:=374
+TRINO_MUTATION:=
 
 # 0.266 was the hand-grafted version
 #PRESTO_VER:=0.266-SNAPSHOT
 
 # as of Jan 27, this is a hand-built 0.269 for a pre-release of the Delta connector
-PRESTO_VER:=0.269-SNAPSHOT
-
-# Venki's delta-dsr0.3 branch (for Presto) is version 0.266-SNAPSHOT; 
-PRESTO_SNAPSHOT_VERSION := 0.266-SNAPSHOT
-#PRESTO_SNAPSHOT_VERSION := 339
+# PrestoDB version:
+# 0.266-SNAPSHOT: Venki's delta-dsr0.3 branch (for Presto) 
+# 0.269: first public release of Venki's contributed Delta connector
+PRESTO_VER:=0.269
 
 .PHONY: build local push run down release pcopy pdev ppush prun pdown pcli tcopy tdev tpush trun tdown tcli
 
@@ -85,11 +88,14 @@ tcopy:
 	ls -l presto-base/px-bin/trino-*
 
 pcli:
-	docker exec -it coordinator /usr/local/bin/presto-cli
+	docker exec -it coordinator /usr/local/bin/px-cli
 
 tcli:
-	docker exec -it coordinator /usr/local/bin/trino-cli
+	docker exec -it coordinator /usr/local/bin/px-cli --catalog deltas3g --schema default
+#	docker exec -it coordinator /usr/local/bin/px-cli --catalog deltas3hms --schema default
 
+tbash:
+	docker exec -it coordinator bash
 
 # No mutant PrestoDB build to date; but we'll add the MUTATION symbol in as a reminder/anticipation of the possibility
 #
@@ -111,6 +117,7 @@ ppush:
 	docker push ${DOCKERHUB_ID}/presto-dbx-worker:$(PRESTO_VER)
 
 prun:
+	ls -l _nodeconfig.env
 	PRESTVAR=presto PRESTO_VERSION=$(PRESTO_VER) docker-compose up -d
 	echo "PrestoDB up. Please check http://localhost:8080"
 
@@ -162,9 +169,30 @@ tmpush:
 	docker push ${DOCKERHUB_ID}/trino-dbx-worker:$(TRINO_VER)${TRINO_MUTATION}
 
 trun:
-	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose up -d
+	ls -l _nodeconfig.env
+	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose up -d --remove-orphans
 	echo "Trino up. Please check http://localhost:8080"
 
+tclear:
+	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose rm -f -s
+
 tdown:
-	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose down
+	PRESTVAR=trino PRESTO_VERSION=$(TRINO_VER) docker-compose down --remove-orphans
+
+sanity:
+	docker exec -it coordinator px-cli --execute "SELECT * FROM system.runtime.nodes;"
+
+# pull credentials from your ~/.aws/credentials
+# note sed uses an alternate delimiter as AWS secret access key can contain a slash
+config:
+	cat deltas3g-tpl.properties | \
+		sed s=ZZ-AWS-ACCESS-KEY-ID=`$(AWS) configure get aws_access_key_id`=g | \
+		sed s=ZZ-AWS-SECRET-ACCESS-KEY=`$(AWS) configure get aws_secret_access_key`=g | \
+		sed s=ZZ-AWS-ACCOUNT-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
+		> deltas3g.properties
+	cat deltas3-tpl.properties | \
+		sed s=ZZ-AWS-ACCESS-KEY-ID=`$(AWS) configure get aws_access_key_id`=g | \
+		sed s=ZZ-AWS-SECRET-ACCESS-KEY=`$(AWS) configure get aws_secret_access_key`=g | \
+		sed s=ZZ-AWS-ACCOUNT-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
+		> deltas3.properties
 

@@ -1,6 +1,8 @@
 #
-# k8s yaml for PrestoDB coordinators:
-#   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each PrestoDB node (pod)
+# For build 373 & onward (373 as the initial OSS release of Starburst's Delta connector)
+#
+# k8s yaml for Trino coordinators:
+#   1 StatefulSet - use a StatefulSet to get a sticky/persistent name for each Trino node (pod)
 #   1 Service - a headless service for the worker pool 
 #   1 Service Account - access control
 #
@@ -11,12 +13,11 @@ kind: Service
 metadata:
   name: coordinator
   labels:
-    app: prestodb
-    version: v0266
+    app: trino
+    version: v373
 spec:
   selector:
-    app: prestodb
-    version: v0266
+    app: trino
   clusterIP: None
   ports:
   - port: 8080
@@ -36,28 +37,38 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: prestodb
-      version: v0266
+      app: trino
+      version: v373
   serviceName: coordinator
   replicas: 1
   template:
     metadata:
       labels:
-        app: prestodb
-        version: v0266
+        app: trino
+        version: v373
+        role: px-coord
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - px-coord
       containers:
       - name: coordinator
-        image: docker.io/overcoil/presto-dbx-coordinator:0.266-SNAPSHOT
+        image: docker.io/overcoil/trino-dbx-coordinator:374
         ports:
         - containerPort: 8080
           name: access
         # resources:
         #   requests:
-        #     memory: "4G"
+        #     memory: "16G"
         #     cpu: "1000m"
         #   limits:
-        #     memory: "8G"
+        #     memory: "16G"
         #     cpu: "1000m"
         env:
           - name: cluster.name
@@ -68,12 +79,18 @@ spec:
                 fieldPath: metadata.name
         envFrom:
         - configMapRef:
-            name: cm-px-clusterproperties
-        - secretRef:
-            name: secret-awscred
+            name: cm-px-nodeconfig
         command: ["./scripts/px-prep.sh"]
-        args: ["http://coordinator-0.coordinator.prestodb.svc.cluster.local:8080", $(node.name)]
+        args: ["http://coordinator-0.coordinator.trino.svc.cluster.local:8080", $(node.name)]
         imagePullPolicy: Always
+        volumeMounts:
+        - name: deltas3g-file
+          mountPath: /usr/local/px/etc/catalog
+          readOnly: true
+      volumes:
+      - name: deltas3g-file
+        configMap:
+          name: cm-deltas3g.properties
       dnsConfig:
         searches:
-          - worker.prestodb.svc.cluster.local
+          - worker.trino.svc.cluster.local

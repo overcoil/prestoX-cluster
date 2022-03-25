@@ -1,0 +1,9 @@
+[template]
+src = "config.properties-fragment.tmpl"
+dest = "/usr/local/px/etc/config.properties-fragment"
+keys = [
+    "/px/configproperties/querymaxmemory_pernode",
+    "/px/configproperties/querymaxmemory",
+    "/px/configproperties/querymaxtotalmemory",
+    "/px/configproperties/memoryheapheadroompernode",
+]

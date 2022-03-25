@@ -7,6 +7,11 @@
 #   CONFIGPROPERTIES values use the unit GB
 #   JVMCONFIG values use the unit G
 #
+# Version-dependency:
+#   - Trino 369 deprecated query.max-total-memory-per-node 
+#   - Keeping the feeder variable (PX_CONFIGPROPERTIES_QUERYMAXTOTALMEMORYPERNODE) here is
+#     ok but the confd tmpl/toml must be (and has been) updated. 
+#
 
 apiVersion: v1
 kind: ConfigMap
