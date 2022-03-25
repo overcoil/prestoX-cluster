@@ -188,11 +188,11 @@ config:
 	cat deltas3g-tpl.properties | \
 		sed s=ZZ-AWS-ACCESS-KEY-ID=`$(AWS) configure get aws_access_key_id`=g | \
 		sed s=ZZ-AWS-SECRET-ACCESS-KEY=`$(AWS) configure get aws_secret_access_key`=g | \
-		sed s=ZZ-AWS-ACCOUNT-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
+		sed s=ZZ-AWS-USER-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
 		> deltas3g.properties
 	cat deltas3-tpl.properties | \
 		sed s=ZZ-AWS-ACCESS-KEY-ID=`$(AWS) configure get aws_access_key_id`=g | \
 		sed s=ZZ-AWS-SECRET-ACCESS-KEY=`$(AWS) configure get aws_secret_access_key`=g | \
-		sed s=ZZ-AWS-ACCOUNT-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
+		sed s=ZZ-AWS-USER-ID=`$(AWS) sts get-caller-identity | awk '{print $$1}'`=g \
 		> deltas3.properties
 
